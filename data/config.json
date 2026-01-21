@@ -1,0 +1,24 @@
+{
+  "general": {
+    "auto_start": false,
+    "minimize_to_tray": true,
+    "show_notifications": true,
+    "language": "zh_CN"
+  },
+  "backup": {
+    "default_sync_mode": "one_way",
+    "default_conflict_strategy": "newest_wins",
+    "max_concurrent_tasks": 3,
+    "compare_method": "mtime",
+    "buffer_size": 1048576
+  },
+  "log": {
+    "level": "INFO",
+    "max_days": 30,
+    "max_size_mb": 100
+  },
+  "monitor": {
+    "debounce_seconds": 1.0,
+    "ignore_hidden": true
+  }
+}

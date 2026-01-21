@@ -1,0 +1,36 @@
+{
+  "tasks": [
+    {
+      "id": "a2db9102",
+      "name": "ss",
+      "source_path": "C:/Users/Admin/Desktop/测试备份程序·/需备份",
+      "target_paths": [
+        "C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本"
+      ],
+      "sync_mode": "two_way",
+      "conflict_strategy": "keep_both",
+      "include_patterns": [],
+      "exclude_patterns": [
+        ".*/**",
+        "*.temp",
+        "Thumbs.db",
+        "desktop.ini",
+        ".DS_Store",
+        ".*",
+        "*/.*",
+        "*.tmp",
+        "*.bak",
+        "*.swp",
+        "~*"
+      ],
+      "enabled": true,
+      "auto_start": true,
+      "delete_orphans": false,
+      "reverse_delete": false,
+      "created_at": "2026-01-21T13:42:49.501052",
+      "updated_at": "2026-01-21T14:01:58.978860",
+      "last_run_time": "2026-01-21T14:02:01.270629",
+      "compare_method": "mtime"
+    }
+  ]
+}
