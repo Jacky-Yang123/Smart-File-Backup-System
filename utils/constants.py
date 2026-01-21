@@ -2,6 +2,7 @@
 常量定义模块
 """
 import os
+import sys
 from enum import Enum
 
 # 应用信息
@@ -10,7 +11,13 @@ APP_VERSION = "1.0.0"
 APP_AUTHOR = "SmartBackup"
 
 # 目录路径
-APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if getattr(sys, 'frozen', False):
+    # 如果是打包后的 executable，使用可执行文件所在的目录
+    APP_DIR = os.path.dirname(sys.executable)
+else:
+    # 如果是脚本运行，使用当前文件所在的目录的上级目录
+    APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 DATA_DIR = os.path.join(APP_DIR, "data")
 RESOURCES_DIR = os.path.join(APP_DIR, "resources")
 

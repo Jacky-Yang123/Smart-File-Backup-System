@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QFileDialog, QLineEdit
 )
 from PyQt5.QtCore import Qt
+import os
 
 from utils.config_manager import config_manager
 from utils.constants import SyncMode, ConflictStrategy, LogLevel, DATA_DIR
@@ -266,8 +267,28 @@ class SettingsDialog(QDialog):
         new_path = self.storage_path_edit.text()
         if old_path != new_path:
             config_manager.set("general.storage_path", new_path)
+            
+            # 如果新路径没有数据，提示是否迁移
+            try:
+                import shutil
+                old_tasks = os.path.join(old_path, "tasks.json")
+                new_tasks = os.path.join(new_path, "tasks.json")
+                
+                # 如果新位置没有任务文件，且旧位置有，则自动复制
+                if os.path.exists(old_path) and not os.path.exists(new_tasks):
+                    if os.path.exists(old_tasks):
+                        shutil.copy2(old_tasks, new_tasks)
+                        print(f"Auto-migrated tasks data to {new_path}")
+                        
+                    # 也可以考虑迁移数据库，但数据库可能被占用，这里仅做任务配置的迁移
+            except Exception as e:
+                print(f"Migration warning: {e}")
+
             # 通知日志管理器更换路径
             logger.update_storage_path(new_path)
+            
+            # 重新加载任务（因为路径变了）
+            config_manager.load_tasks()
         
         config_manager.save_config()
         self.accept()

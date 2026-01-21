@@ -96,23 +96,38 @@ class ConfigManager:
         self.save_config()
     
     # 任务配置管理
+    def _get_storage_path(self) -> str:
+        """获取存储路径"""
+        from .constants import DATA_DIR
+        return self.get("general.storage_path", DATA_DIR)
+
     def load_tasks(self) -> None:
         """加载任务配置"""
         try:
-            if os.path.exists(TASKS_FILE):
-                with open(TASKS_FILE, 'r', encoding='utf-8') as f:
+            storage_path = self._get_storage_path()
+            tasks_file = os.path.join(storage_path, "tasks.json")
+            
+            if os.path.exists(tasks_file):
+                with open(tasks_file, 'r', encoding='utf-8') as f:
                     self._tasks = json.load(f)
             else:
                 self._tasks = {"tasks": []}
-                self.save_tasks()
+                # 如果新路径下没有任务文件，但在默认路径下有，是否应该尝试迁移？
+                # 用户的需求是 "自动导入"，通常指读取。如果文件不存在，新建即可。
+                # 为了防止覆盖，我们只在保存时写入。
         except Exception:
             self._tasks = {"tasks": []}
     
     def save_tasks(self) -> bool:
         """保存任务配置"""
         try:
-            os.makedirs(os.path.dirname(TASKS_FILE), exist_ok=True)
-            with open(TASKS_FILE, 'w', encoding='utf-8') as f:
+            storage_path = self._get_storage_path()
+            if not os.path.exists(storage_path):
+                os.makedirs(storage_path, exist_ok=True)
+                
+            tasks_file = os.path.join(storage_path, "tasks.json")
+            
+            with open(tasks_file, 'w', encoding='utf-8') as f:
                 json.dump(self._tasks, f, indent=2, ensure_ascii=False)
             return True
         except Exception:
