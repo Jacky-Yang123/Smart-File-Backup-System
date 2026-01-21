@@ -106,13 +106,14 @@ class SyncProcessor:
         """检查是否应该处理该文件"""
         return match_file_patterns(filepath, self.include_patterns, self.exclude_patterns)
     
-    def _sync_file(self, source_file: str, target_path: str) -> SyncResult:
+    def _sync_file(self, source_file: str, target_path: str, dry_run: bool = False) -> SyncResult:
         """
         同步单个文件
         
         Args:
             source_file: 源文件路径
             target_path: 目标文件夹路径
+            dry_run: 是否为模拟运行
         
         Returns:
             同步结果
@@ -133,6 +134,17 @@ class SyncProcessor:
             
             # 目标文件不存在,直接复制
             if not os.path.exists(target_file):
+                if dry_run:
+                    file_size = get_file_size(source_file)
+                    return SyncResult(
+                        success=True,
+                        action="copy",
+                        source_path=source_file,
+                        target_path=target_file,
+                        message="[模拟] 将复制文件",
+                        file_size=file_size
+                    )
+
                 success, error = safe_copy_file(source_file, target_file)
                 if success:
                     file_size = get_file_size(source_file)
@@ -158,6 +170,17 @@ class SyncProcessor:
                 action, resolved_path, reason = self.conflict_handler.resolve(source_file, target_file)
                 
                 if action == "copy":
+                    if dry_run:
+                         file_size = get_file_size(source_file)
+                         return SyncResult(
+                            success=True,
+                            action="copy",
+                            source_path=source_file,
+                            target_path=resolved_path or target_file,
+                            message=f"[模拟] 冲突解决: {reason}",
+                            file_size=file_size
+                        )
+
                     success, error = safe_copy_file(source_file, resolved_path or target_file)
                     if success:
                         file_size = get_file_size(source_file)
@@ -226,7 +249,7 @@ class SyncProcessor:
                 message=f"同步异常: {str(e)}"
             )
     
-    def _sync_deletion(self, deleted_path: str, target_path: str) -> SyncResult:
+    def _sync_deletion(self, deleted_path: str, target_path: str, dry_run: bool = False) -> SyncResult:
         """同步删除操作"""
         try:
             rel_path = get_relative_path(deleted_path, self.source_path)
@@ -243,6 +266,15 @@ class SyncProcessor:
                 )
             
             if os.path.exists(target_file):
+                if dry_run:
+                    return SyncResult(
+                        success=True,
+                        action="delete",
+                        source_path=deleted_path,
+                        target_path=target_file,
+                        message="[模拟] 将删除文件"
+                    )
+
                 success, error = safe_delete_file(target_file)
                 if success:
                     return SyncResult(
@@ -437,13 +469,14 @@ class SyncProcessor:
         
         return results
     
-    def _sync_file_reverse(self, target_file: str, target_base: str) -> SyncResult:
+    def _sync_file_reverse(self, target_file: str, target_base: str, dry_run: bool = False) -> SyncResult:
         """
         反向同步单个文件（目标 -> 源）
         
         Args:
             target_file: 目标文件路径
             target_base: 目标文件夹基础路径
+            dry_run: 是否为模拟运行
         
         Returns:
             同步结果
@@ -464,6 +497,17 @@ class SyncProcessor:
             
             # 源文件不存在,直接复制
             if not os.path.exists(source_file):
+                if dry_run:
+                    file_size = get_file_size(target_file)
+                    return SyncResult(
+                        success=True,
+                        action="copy",
+                        source_path=target_file,
+                        target_path=source_file,
+                        message="[模拟] 反向同步：将复制到源",
+                        file_size=file_size
+                    )
+
                 success, error = safe_copy_file(target_file, source_file)
                 if success:
                     file_size = get_file_size(target_file)
@@ -535,7 +579,7 @@ class SyncProcessor:
                 message=f"反向同步异常: {str(e)}"
             )
     
-    def _sync_deletion_reverse(self, deleted_path: str, target_base: str) -> SyncResult:
+    def _sync_deletion_reverse(self, deleted_path: str, target_base: str, dry_run: bool = False) -> SyncResult:
         """反向同步删除操作（目标删除 -> 源删除）"""
         try:
             rel_path = get_relative_path(deleted_path, target_base)
@@ -552,6 +596,15 @@ class SyncProcessor:
                 )
             
             if os.path.exists(source_file):
+                if dry_run:
+                    return SyncResult(
+                        success=True,
+                        action="delete",
+                        source_path=deleted_path,
+                        target_path=source_file,
+                        message="[模拟] 反向同步：将删除源文件"
+                    )
+
                 success, error = safe_delete_file(source_file)
                 if success:
                     return SyncResult(
@@ -652,12 +705,13 @@ class SyncProcessor:
         
         return results
 
-    def full_sync(self, delete_orphans: bool = False) -> List[SyncResult]:
+    def full_sync(self, delete_orphans: bool = False, dry_run: bool = False) -> List[SyncResult]:
         """
         执行全量同步
         
         Args:
             delete_orphans: 是否删除目标中多余的文件
+            dry_run: 是否为模拟运行
         
         Returns:
             同步结果列表
@@ -686,7 +740,7 @@ class SyncProcessor:
                     for source_file in source_files:
                         if self._should_stop:
                             break
-                        future = executor.submit(self._sync_file, source_file, target_path)
+                        future = executor.submit(self._sync_file, source_file, target_path, dry_run)
                         futures[future] = source_file
                     
                     for future in as_completed(futures):
@@ -715,14 +769,18 @@ class SyncProcessor:
                                 action="delete",
                                 source_path="",
                                 target_path=target_file,
-                                message="删除多余文件"
+                                message="[模拟] 将删除多余文件" if dry_run else "删除多余文件"
                             )
-                            success, error = safe_delete_file(target_file)
-                            if not success:
-                                result.success = False
-                                result.action = "error"
-                                result.message = f"删除失败: {error}"
-                            results.append(result)
+                            
+                            if dry_run:
+                                results.append(result)
+                            else:
+                                success, error = safe_delete_file(target_file)
+                                if not success:
+                                    result.success = False
+                                    result.action = "error"
+                                    result.message = f"删除失败: {error}"
+                                results.append(result)
                             
                 # 双向同步：反向同步 (目标 -> 源)
                 if self.sync_mode == SyncMode.TWO_WAY and not self._should_stop:
@@ -736,7 +794,7 @@ class SyncProcessor:
                         for target_file in target_files:
                             if self._should_stop:
                                 break
-                            future = executor.submit(self._sync_file_reverse, target_file, target_path)
+                            future = executor.submit(self._sync_file_reverse, target_file, target_path, dry_run)
                             futures[future] = target_file
                         
                         for future in as_completed(futures):

@@ -11,7 +11,7 @@ from datetime import datetime
 from utils.constants import SyncMode, ConflictStrategy, TaskStatus
 from utils.config_manager import config_manager
 from utils.logger import logger
-from .file_monitor import FileMonitor, FileEvent
+from .file_monitor import FileMonitor, FileEvent, PollingMonitor
 from .sync_processor import SyncProcessor
 
 
@@ -31,6 +31,11 @@ class BackupTask:
     delete_orphans: bool = False
     reverse_delete: bool = False  # 单向备份：目标删除时是否同步删除源文件
     disable_delete: bool = False  # 禁止删除操作：防止任何文件被删除
+    file_count_diff_threshold: int = 20  # 双向同步：文件数量差异警告阈值
+    monitor_mode: str = "realtime"  # 监控模式: realtime(实时) 或 polling(轮询)
+    poll_interval: int = 5  # 轮询间隔(秒)
+    safety_threshold: int = 50  # 安全阈值：一次同步最大允许变更文件数 (超过则警告)
+    batch_delay: float = 1.0  # 批量操作防抖延迟(秒)
     created_at: str = ""
     updated_at: str = ""
     last_run_time: str = ""
@@ -67,6 +72,16 @@ class TaskRunner:
         self._operation_lock = threading.Lock()  # 操作锁，防止全量同步与实时同步冲突
         self._event_callback: Optional[Callable] = None
         self._status_callback: Optional[Callable] = None
+        
+        # 批量处理相关属性
+        self._batch_lock = threading.Lock()
+        self._file_event_batch: List[Tuple[FileEvent, bool, object]] = []
+        self._batch_timer: Optional[threading.Timer] = None
+        # self._SAFETY_DELAY = 1.0  # 使用 self.task.batch_delay 代替
+        
+        # 安全暂停状态
+        self._is_safety_paused = False
+        self._paused_batch: List[Tuple[FileEvent, bool, object]] = []
     
     def set_event_callback(self, callback: Callable[[str, FileEvent, dict], None]):
         """设置事件回调 (task_id, event, result)"""
@@ -77,40 +92,144 @@ class TaskRunner:
         self._status_callback = callback
     
     def _on_file_event(self, event: FileEvent):
-        """处理源文件夹的文件事件（使用线程异步处理避免阻塞）"""
-        if self._status != TaskStatus.RUNNING:
+        """文件变更事件回调 - 改为批量缓冲"""
+        if self.status != TaskStatus.RUNNING:
             return
-        
-        # 使用线程异步处理，避免阻塞文件监控
-        import threading
-        thread = threading.Thread(
-            target=self._process_file_event_async,
-            args=(event, False, None),
-            daemon=True
-        )
-        thread.start()
-    
-    def _on_target_file_event(self, target_path: str, event: FileEvent):
-        """处理目标文件夹的文件事件（双向同步，异步处理）"""
-        if self._status != TaskStatus.RUNNING:
+            
+        self._add_to_batch(event, False)
+
+    def _on_target_file_event(self, event: FileEvent, target_base: str):
+        """目标文件变更回调 - 改为批量缓冲"""
+        if self.status != TaskStatus.RUNNING:
             return
+            
+        self._add_to_batch(event, True, target_base)
         
-        # 使用线程异步处理
+    def _add_to_batch(self, event: FileEvent, is_reverse: bool, target_base: str = None):
+        """添加到批量缓冲区并重置定时器"""
+        with self._batch_lock:
+            # 取消现有定时器
+            if self._batch_timer:
+                self._batch_timer.cancel()
+            
+            # 添加到缓冲区
+            self._file_event_batch.append((event, is_reverse, target_base))
+            
+            # 设置新定时器 (Debounce)
+            self._batch_timer = threading.Timer(self.task.batch_delay, self._process_batch_events)
+            self._batch_timer.start()
+            
+    def _process_batch_events(self):
+        """处理批量收集的事件"""
+        with self._batch_lock:
+            if not self._file_event_batch:
+                return
+            
+            # 复制并清空缓冲区 (Snapshot)
+            batch = list(self._file_event_batch)
+            self._file_event_batch.clear()
+            self._batch_timer = None
+        
+        # 如果处于安全暂停状态，直接累积到暂停的批次中
+        if self._is_safety_paused:
+             self._paused_batch.extend(batch)
+             self._trigger_safety_alert_update() # 更新提醒
+             return
+            
+        # 检查是否超过安全阈值
+        unique_paths = set()
+        for evt, _, _ in batch:
+            unique_paths.add(evt.src_path)
+        
+        total_changes = len(unique_paths)
+        
+        # 如果超过阈值，触发警告
+        if total_changes >= self.task.safety_threshold:
+             self._is_safety_paused = True
+             self._paused_batch.extend(batch)
+             self._trigger_safety_alert_update()
+        else:
+             # 正常执行
+             threading.Thread(target=self._execute_batch, args=(batch,)).start()
+
+    def confirm_safety_alert(self):
+        """确认并执行安全暂停期间累积的变更"""
+        if not self._is_safety_paused:
+            return
+            
+        batch_to_run = list(self._paused_batch)
+        self._paused_batch.clear()
+        self._is_safety_paused = False
+        
+        self.execute_batch(batch_to_run)
+        
+    def execute_batch(self, batch):
+        """执行批量任务 (公开接口)"""
+        # ... (保持不变)
         import threading
-        thread = threading.Thread(
-            target=self._process_file_event_async,
-            args=(event, True, target_path),
-            daemon=True
-        )
-        thread.start()
-    
+        # 异步执行，不阻塞 UI
+        threading.Thread(target=self._execute_batch, args=(batch,), daemon=True).start()
+
+    def _execute_batch(self, batch):
+        """执行批量任务 (内部实现)"""
+        # 获取操作锁，防止与全量同步冲突
+        if not self._processor:
+            return
+            
+        try:
+             # 我们在这里不获取全局锁，因为 _process_file_event_async 内部会获取
+             # 但为了防止批处理过程中任务被停止或删除，可以加个简单的状态检查
+             if self.status != TaskStatus.RUNNING:
+                 return
+
+             for event, is_reverse, target_base in batch:
+                if self.status != TaskStatus.RUNNING:
+                    break
+                # 调用处理逻辑
+                self._process_file_event_async(event, is_reverse, target_base)
+        except Exception as e:
+            logger.error(f"批量执行失败: {e}", task_id=self.task.id, category="task")
+
+    def _trigger_safety_alert_update(self):
+        """触发或更新安全警告"""
+        count = len(self._paused_batch)
+        batch = self._paused_batch
+        
+        logger.warning(f"安全暂停中: 累积变更 {count} (阈值 {self.task.safety_threshold})", 
+                      task_id=self.task.id, category="safety")
+        
+        # 构造警告信息
+        msg = f"检测到 {count} 个文件发生变更，超过了安全阈值 ({self.task.safety_threshold})。\n"
+        msg += "在此期间的所有后续变更都将暂缓执行，直到您确认。\n\n"
+        
+        preview_files = [os.path.basename(e[0].src_path) for e in batch[:5]]
+        msg += "变更预览:\n" + "\n".join(preview_files)
+        if count > 5:
+            msg += f"\n... 等 {count} 个文件"
+            
+        if self._event_callback:
+            dummy_event = batch[0][0] 
+            self._event_callback(self.task.id, dummy_event, {
+                "success": False,
+                "action": "safety_alert",
+                "message": msg,
+                "batch_data": batch, # 传递完整数据，供 UI 选择
+                "alert_type": "massive_change",
+                "accumulated_count": count
+            })
+
+    def reset_safety_pause(self):
+        """重置安全暂停状态（不执行已累积的操作）"""
+        self._is_safety_paused = False
+        self._paused_batch.clear()
+        
     def _process_file_event_async(self, event: FileEvent, is_reverse: bool, target_base: str = None):
         """异步处理文件事件"""
         # 获取操作锁，确保不与全量同步冲突
-        if not self._operation_lock.acquire(timeout=60):  # 尝试获取锁，超时60秒
+        if not self._processor or not self._operation_lock.acquire(timeout=60):  # 尝试获取锁，超时60秒
             logger.warning(f"获取操作锁超时，跳过事件: {event.src_path}", task_id=self.task.id, category="task")
             return
-
+            
         try:
             self._is_syncing = True
             # 执行同步
@@ -122,9 +241,7 @@ class TaskRunner:
             # 更新最后运行时间
             if results:
                 self.task.last_run_time = datetime.now().isoformat()
-                # 可以在这里保存任务状态，但为了性能可能不需要每次都保存硬盘
 
-            
             # 统计成功和失败
             success_count = sum(1 for r in results if r.success and r.action != "skip")
             failed_count = sum(1 for r in results if not r.success)
@@ -196,7 +313,9 @@ class TaskRunner:
             logger.error(f"处理文件事件失败: {e}", task_id=self.task.id, category="task")
         finally:
             self._is_syncing = False
-            self._operation_lock.release()
+            if self._operation_lock.locked():
+                 self._operation_lock.release()
+
     
     def _set_status(self, status: TaskStatus):
         """设置状态"""
@@ -222,14 +341,24 @@ class TaskRunner:
                     disable_delete=self.task.disable_delete
                 )
                 
-                # 创建源文件夹监控器
-                self._monitor = FileMonitor(
-                    path=self.task.source_path,
-                    callback=self._on_file_event,
-                    recursive=True,
-                    include_patterns=self.task.include_patterns,
-                    exclude_patterns=self.task.exclude_patterns
-                )
+                # 创建源文件夹监控器（根据模式选择实时或轮询）
+                if self.task.monitor_mode == "polling":
+                    self._monitor = PollingMonitor(
+                        path=self.task.source_path,
+                        callback=self._on_file_event,
+                        interval=self.task.poll_interval,
+                        recursive=True,
+                        include_patterns=self.task.include_patterns,
+                        exclude_patterns=self.task.exclude_patterns
+                    )
+                else:
+                    self._monitor = FileMonitor(
+                        path=self.task.source_path,
+                        callback=self._on_file_event,
+                        recursive=True,
+                        include_patterns=self.task.include_patterns,
+                        exclude_patterns=self.task.exclude_patterns
+                    )
                 
                 if not self._monitor.start():
                     return False
@@ -309,7 +438,7 @@ class TaskRunner:
                 self._set_status(TaskStatus.RUNNING)
                 logger.info(f"任务已恢复: {self.task.name}", task_id=self.task.id, category="task")
     
-    def run_full_sync(self) -> bool:
+    def run_full_sync(self, skip_safety_check: bool = False) -> bool:
         """执行全量同步"""
         # 获取操作锁，防止与实时同步冲突
         with self._operation_lock:
@@ -351,6 +480,85 @@ class TaskRunner:
                 return False
             finally:
                 self._is_syncing = False
+    
+    
+    def check_sync_safety(self) -> dict:
+        """
+        检查同步前的安全状态 (使用模拟运行)
+        
+        Returns:
+            dict: {
+                "safe": bool,  # 是否安全
+                "warning_type": str,  # "empty_source" | "massive_change" | None
+                "message": str,  # 警告消息
+                "changes_count": int
+            }
+        """
+        try:
+            # 临时创建处理器如果不存在
+            processor = self._processor
+            if processor is None:
+                processor = SyncProcessor(
+                    source_path=self.task.source_path,
+                    target_paths=self.task.target_paths,
+                    sync_mode=SyncMode(self.task.sync_mode),
+                    conflict_strategy=ConflictStrategy(self.task.conflict_strategy),
+                    include_patterns=self.task.include_patterns,
+                    exclude_patterns=self.task.exclude_patterns,
+                    disable_delete=self.task.disable_delete
+                )
+            
+            # 执行模拟运行
+            logger.info(f"正在进行安全检查(Dry Run): {self.task.name}", task_id=self.task.id, category="safety")
+            results = processor.full_sync(delete_orphans=self.task.delete_orphans, dry_run=True)
+            
+            # 分析结果
+            total_changes = 0
+            delete_count = 0
+            changes_details = []
+            
+            for res in results:
+                if res.action in ("copy", "delete", "move"):
+                    total_changes += 1
+                    if len(changes_details) < 5:  # 只记录前5个变更用于显示
+                        changes_details.append(f"{res.action}: {os.path.basename(res.source_path or res.target_path)}")
+                
+                if res.action == "delete":
+                    delete_count += 1
+            
+            logger.info(f"安全检查结果: 变更={total_changes}, 删除={delete_count}", task_id=self.task.id, category="safety")
+            
+            # 1. 检查空源保护 (仅在单向同步且开启清理时)
+            if self.task.sync_mode == SyncMode.ONE_WAY.value and self.task.delete_orphans:
+                 from utils.file_utils import scan_directory
+                 source_files = scan_directory(self.task.source_path)
+                 if len(source_files) == 0 and delete_count > 0:
+                     return {
+                        "safe": False,
+                        "warning_type": "empty_source",
+                        "message": f"警告：源文件夹为空！\n本次同步将删除目标文件夹中的 {delete_count} 个文件。\n\n如果您不确定，请点击【取消】。",
+                        "changes_count": total_changes
+                    }
+
+            # 2. 检查大量变更
+            if total_changes >= self.task.safety_threshold:
+                 detail_str = "\n".join(changes_details)
+                 if total_changes > 5:
+                     detail_str += f"\n... 等 {total_changes} 个文件"
+                     
+                 return {
+                    "safe": False,
+                    "warning_type": "massive_change",
+                    "message": f"警告：本次同步涉及大量变更 ({total_changes} 个文件)！\n超过了设定的安全阈值 ({self.task.safety_threshold})。\n\n变更预览:\n{detail_str}",
+                    "changes_count": total_changes
+                }
+            
+            return {"safe": True, "warning_type": None, "message": "", "changes_count": total_changes}
+            
+        except Exception as e:
+            logger.error(f"安全检查失败: {e}", task_id=self.task.id, category="safety")
+            # 如果检查失败，默认放行，但记录错误
+            return {"safe": True, "warning_type": None, "message": "", "changes_count": 0}
     
     @property
     def status(self) -> TaskStatus:
@@ -559,10 +767,13 @@ class TaskManager:
             return self._runners[task_id].run_full_sync()
         return False
     
-    def start_all(self):
-        """启动所有启用的任务"""
+    def start_all(self, force: bool = False):
+        """
+        启动所有启用的任务
+        :param force: 是否强制启动（忽略 auto_start 设置），用于手动点击"全部启动"
+        """
         for task_id, task in self._tasks.items():
-            if task.enabled and task.auto_start:
+            if task.enabled and (task.auto_start or force):
                 self.start_task(task_id)
     
     def stop_all(self):
@@ -585,7 +796,22 @@ class TaskManager:
     def get_running_count(self) -> int:
         """获取运行中的任务数量"""
         return sum(1 for r in self._runners.values() if r.status == TaskStatus.RUNNING)
+        
+    def execute_batch(self, task_id: str, batch: list):
+        """执行批量任务"""
+        if task_id in self._runners:
+            self._runners[task_id].execute_batch(batch)
     
+    def confirm_safety_alert(self, task_id: str):
+        """确认处理安全警告累积的所有操作"""
+        if task_id in self._runners:
+            self._runners[task_id].confirm_safety_alert()
+
+    def reset_safety_pause(self, task_id: str):
+        """重置安全暂停状态（丢弃累积的操作）"""
+        if task_id in self._runners:
+            self._runners[task_id].reset_safety_pause()
+
     def get_overall_stats(self) -> dict:
         """获取总体统计"""
         total_tasks = len(self._tasks)

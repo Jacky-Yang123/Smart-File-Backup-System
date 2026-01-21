@@ -6,7 +6,7 @@ from typing import Optional
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLabel, QLineEdit, QPushButton, QComboBox, QCheckBox,
-    QListWidget, QTabWidget, QWidget, QFileDialog, QMessageBox
+    QListWidget, QTabWidget, QWidget, QFileDialog, QMessageBox, QSpinBox, QDoubleSpinBox
 )
 from PyQt5.QtCore import Qt
 
@@ -148,6 +148,21 @@ class TaskDialog(QDialog):
         self.conflict_combo.addItem("跳过", ConflictStrategy.SKIP.value)
         form.addRow("冲突处理:", self.conflict_combo)
         
+        # 监控模式
+        self.monitor_mode_combo = QComboBox()
+        self.monitor_mode_combo.addItem("实时监控 (watchdog)", "realtime")
+        self.monitor_mode_combo.addItem("轮询模式 (定时检测)", "polling")
+        self.monitor_mode_combo.currentIndexChanged.connect(self._on_monitor_mode_changed)
+        form.addRow("监控模式:", self.monitor_mode_combo)
+        
+        # 轮询间隔
+        self.poll_interval_spin = QSpinBox()
+        self.poll_interval_spin.setRange(1, 60)
+        self.poll_interval_spin.setValue(5)
+        self.poll_interval_spin.setSuffix(" 秒")
+        self.poll_interval_spin.setEnabled(False)
+        form.addRow("轮询间隔:", self.poll_interval_spin)
+        
         layout.addLayout(form)
         
         # 删除选项组
@@ -181,6 +196,51 @@ class TaskDialog(QDialog):
         self.disable_delete_check.setStyleSheet(f"color: {COLORS['success']};")
         layout.addWidget(self.disable_delete_check)
         
+        # 文件数量差异阈值（双向同步）
+        threshold_layout = QHBoxLayout()
+        threshold_label = QLabel("双向同步文件数量差异警告阈值:")
+        threshold_label.setStyleSheet(f"color: {COLORS['text_muted']}; font-size: 11px;")
+        threshold_layout.addWidget(threshold_label)
+        
+        self.threshold_spinbox = QSpinBox()
+        self.threshold_spinbox.setRange(1, 1000)
+        self.threshold_spinbox.setValue(20)
+        self.threshold_spinbox.setToolTip("当源文件夹与目标文件夹的文件数量差异超过此阈值时，会显示警告")
+        self.threshold_spinbox.setFixedWidth(80)
+        threshold_layout.addWidget(self.threshold_spinbox)
+        threshold_layout.addStretch()
+        layout.addLayout(threshold_layout)
+        
+        safety_layout = QHBoxLayout()
+        safety_label = QLabel("单次同步最大变更安全阈值:")
+        safety_label.setStyleSheet(f"color: {COLORS['text_muted']}; font-size: 11px;")
+        safety_layout.addWidget(safety_label)
+        
+        self.safety_spinbox = QSpinBox()
+        self.safety_spinbox.setRange(1, 10000)
+        self.safety_spinbox.setValue(50)
+        self.safety_spinbox.setToolTip("当单次同步涉及的文件变更(含删除)超过此阈值时，会显示警告")
+        self.safety_spinbox.setFixedWidth(80)
+        safety_layout.addWidget(self.safety_spinbox)
+        safety_layout.addStretch()
+        layout.addLayout(safety_layout)
+        
+        # 批量防抖延迟
+        delay_layout = QHBoxLayout()
+        delay_label = QLabel("批量操作防抖延迟 (秒):")
+        delay_label.setStyleSheet(f"color: {COLORS['text_muted']}; font-size: 11px;")
+        delay_layout.addWidget(delay_label)
+        
+        self.batch_delay_spin = QDoubleSpinBox()
+        self.batch_delay_spin.setRange(0.1, 60.0)
+        self.batch_delay_spin.setValue(1.0)
+        self.batch_delay_spin.setSingleStep(0.5)
+        self.batch_delay_spin.setToolTip("检测到文件变更后等待的时间，用于聚合多次短时间内的操作")
+        self.batch_delay_spin.setFixedWidth(80)
+        delay_layout.addWidget(self.batch_delay_spin)
+        delay_layout.addStretch()
+        layout.addLayout(delay_layout)
+        
         layout.addStretch()
         return widget
     
@@ -190,6 +250,11 @@ class TaskDialog(QDialog):
         self.reverse_delete_check.setEnabled(is_one_way)
         if not is_one_way:
             self.reverse_delete_check.setChecked(False)
+    
+    def _on_monitor_mode_changed(self, index):
+        """监控模式改变时更新UI"""
+        is_polling = self.monitor_mode_combo.currentData() == "polling"
+        self.poll_interval_spin.setEnabled(is_polling)
     
     def _create_filter_tab(self) -> QWidget:
         widget = QWidget()
@@ -296,6 +361,18 @@ class TaskDialog(QDialog):
         self.delete_orphans_check.setChecked(task.delete_orphans)
         self.reverse_delete_check.setChecked(getattr(task, 'reverse_delete', False))
         self.disable_delete_check.setChecked(getattr(task, 'disable_delete', False))
+        self.disable_delete_check.setChecked(getattr(task, 'disable_delete', False))
+        self.threshold_spinbox.setValue(getattr(task, 'file_count_diff_threshold', 20))
+        self.safety_spinbox.setValue(getattr(task, 'safety_threshold', 50))
+        self.batch_delay_spin.setValue(getattr(task, 'batch_delay', 1.0))
+        
+        # 监控模式
+        monitor_mode = getattr(task, 'monitor_mode', 'realtime')
+        idx = self.monitor_mode_combo.findData(monitor_mode)
+        if idx >= 0:
+            self.monitor_mode_combo.setCurrentIndex(idx)
+        self.poll_interval_spin.setValue(getattr(task, 'poll_interval', 5))
+        self._on_monitor_mode_changed(self.monitor_mode_combo.currentIndex())
         
         # 更新UI状态
         self._on_sync_mode_changed(self.sync_mode_combo.currentIndex())
@@ -369,5 +446,10 @@ class TaskDialog(QDialog):
             auto_start=self.auto_start_check.isChecked(),
             delete_orphans=self.delete_orphans_check.isChecked(),
             reverse_delete=self.reverse_delete_check.isChecked(),
-            disable_delete=self.disable_delete_check.isChecked()
+            disable_delete=self.disable_delete_check.isChecked(),
+            file_count_diff_threshold=self.threshold_spinbox.value(),
+            monitor_mode=self.monitor_mode_combo.currentData(),
+            poll_interval=self.poll_interval_spin.value(),
+            safety_threshold=self.safety_spinbox.value(),
+            batch_delay=self.batch_delay_spin.value()
         )

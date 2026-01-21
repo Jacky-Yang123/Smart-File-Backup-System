@@ -279,3 +279,125 @@ class MultiPathMonitor:
     def get_active_paths(self) -> List[str]:
         """获取所有活动监控路径"""
         return list(self._monitors.keys())
+
+
+class PollingMonitor:
+    """
+    轮询监控器
+    定期扫描文件夹变化（替代实时监控）
+    """
+    
+    def __init__(self, path: str, callback: Callable[[FileEvent], None],
+                 interval: int = 5,
+                 recursive: bool = True,
+                 include_patterns: List[str] = None,
+                 exclude_patterns: List[str] = None):
+        """
+        初始化轮询监控器
+        
+        Args:
+            path: 监控路径
+            callback: 事件回调函数
+            interval: 轮询间隔（秒）
+            recursive: 是否递归监控子目录
+            include_patterns: 包含文件模式
+            exclude_patterns: 排除文件模式
+        """
+        self.path = os.path.abspath(path)
+        self.callback = callback
+        self.interval = interval
+        self.recursive = recursive
+        self.include_patterns = include_patterns or []
+        self.exclude_patterns = exclude_patterns or []
+        
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+        self._file_states: Dict[str, float] = {}  # path -> mtime
+    
+    def _scan_files(self) -> Dict[str, float]:
+        """扫描目录获取文件状态"""
+        from utils.file_utils import scan_directory, match_file_patterns
+        
+        file_states = {}
+        try:
+            files = scan_directory(self.path)
+            for file_path in files:
+                if match_file_patterns(file_path, self.include_patterns, self.exclude_patterns):
+                    try:
+                        file_states[file_path] = os.path.getmtime(file_path)
+                    except OSError:
+                        pass
+        except Exception as e:
+            logger.error(f"轮询扫描失败: {e}", category="monitor")
+        return file_states
+    
+    def _poll_loop(self):
+        """轮询循环"""
+        while self._running:
+            try:
+                current_states = self._scan_files()
+                
+                # 检测新增和修改的文件
+                for path, mtime in current_states.items():
+                    if path not in self._file_states:
+                        # 新文件
+                        self.callback(FileEvent(
+                            event_type=FileEventType.CREATED,
+                            src_path=path,
+                            is_directory=False
+                        ))
+                    elif self._file_states[path] != mtime:
+                        # 修改的文件
+                        self.callback(FileEvent(
+                            event_type=FileEventType.MODIFIED,
+                            src_path=path,
+                            is_directory=False
+                        ))
+                
+                # 检测删除的文件
+                for path in self._file_states:
+                    if path not in current_states:
+                        self.callback(FileEvent(
+                            event_type=FileEventType.DELETED,
+                            src_path=path,
+                            is_directory=False
+                        ))
+                
+                self._file_states = current_states
+                
+            except Exception as e:
+                logger.error(f"轮询处理失败: {e}", category="monitor")
+            
+            # 等待下一次轮询
+            time.sleep(self.interval)
+    
+    def start(self) -> bool:
+        """启动轮询"""
+        if self._running:
+            return True
+        
+        if not os.path.exists(self.path):
+            logger.error(f"轮询路径不存在: {self.path}", category="monitor")
+            return False
+        
+        # 初始化文件状态
+        self._file_states = self._scan_files()
+        
+        self._running = True
+        self._thread = threading.Thread(target=self._poll_loop, daemon=True)
+        self._thread.start()
+        logger.info(f"开始轮询监控: {self.path} (间隔 {self.interval}s)", category="monitor")
+        return True
+    
+    def stop(self):
+        """停止轮询"""
+        self._running = False
+        if self._thread:
+            self._thread.join(timeout=self.interval + 1)
+            self._thread = None
+        logger.info(f"停止轮询监控: {self.path}", category="monitor")
+    
+    @property
+    def is_running(self) -> bool:
+        """是否正在运行"""
+        return self._running

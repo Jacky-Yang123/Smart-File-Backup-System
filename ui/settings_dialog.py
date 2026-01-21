@@ -5,12 +5,13 @@ from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLabel, QPushButton, QComboBox, QCheckBox,
     QSpinBox, QGroupBox, QTabWidget, QWidget, QMessageBox,
-    QFileDialog
+    QFileDialog, QLineEdit
 )
 from PyQt5.QtCore import Qt
 
 from utils.config_manager import config_manager
-from utils.constants import SyncMode, ConflictStrategy, LogLevel
+from utils.constants import SyncMode, ConflictStrategy, LogLevel, DATA_DIR
+from utils.logger import logger
 from .styles import COLORS
 
 
@@ -20,7 +21,7 @@ class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("设置")
-        self.setFixedSize(420, 400)
+        self.setFixedSize(500, 520)
         self.setModal(True)
         self.setStyleSheet(f"background-color: {COLORS['bg_dark']};")
         
@@ -84,8 +85,48 @@ class SettingsDialog(QDialog):
         group_layout.addWidget(self.auto_backup_check)
         
         layout.addWidget(group)
+        
+        # UI设置
+        ui_group = QGroupBox("界面设置")
+        ui_layout = QFormLayout(ui_group)
+        ui_layout.setSpacing(6)
+        
+        self.log_refresh_spin = QSpinBox()
+        self.log_refresh_spin.setRange(1, 30)
+        self.log_refresh_spin.setValue(3)
+        self.log_refresh_spin.setSuffix(" 秒")
+        self.log_refresh_spin.setToolTip("日志界面自动刷新的时间间隔")
+        ui_layout.addRow("日志刷新间隔:", self.log_refresh_spin)
+        
+        layout.addWidget(ui_group)
+        
+        # 存储设置
+        storage_group = QGroupBox("存储设置")
+        storage_layout = QVBoxLayout(storage_group)
+        
+        path_layout = QHBoxLayout()
+        self.storage_path_edit = QLineEdit()
+        self.storage_path_edit.setReadOnly(True)
+        path_layout.addWidget(self.storage_path_edit)
+        
+        browse_btn = QPushButton("浏览...")
+        browse_btn.setFixedWidth(60)
+        browse_btn.clicked.connect(self._browse_storage_path)
+        path_layout.addWidget(browse_btn)
+        storage_layout.addLayout(path_layout)
+        
+        hint = QLabel("提示: 修改存储路径将更换日志和历史数据库的位置。")
+        hint.setStyleSheet(f"color: {COLORS['text_muted']}; font-size: 10px;")
+        storage_layout.addWidget(hint)
+        
+        layout.addWidget(storage_group)
         layout.addStretch()
         return widget
+    
+    def _browse_storage_path(self):
+        directory = QFileDialog.getExistingDirectory(self, "选择存储目录")
+        if directory:
+            self.storage_path_edit.setText(directory)
     
     def _create_backup_tab(self) -> QWidget:
         widget = QWidget()
@@ -168,9 +209,14 @@ class SettingsDialog(QDialog):
         return widget
     
     def _load_settings(self):
-        # 常规
         self.auto_start_check.setChecked(config_manager.get("general.auto_start", False))
         self.minimize_to_tray_check.setChecked(config_manager.get("general.minimize_to_tray", True))
+        
+        # UI设置
+        self.log_refresh_spin.setValue(config_manager.get("ui.log_refresh_interval", 3))
+        
+        # 存储路径
+        self.storage_path_edit.setText(config_manager.get("general.storage_path", DATA_DIR))
         
         # 备份
         mode = config_manager.get("backup.default_sync_mode", SyncMode.ONE_WAY.value)
@@ -199,6 +245,9 @@ class SettingsDialog(QDialog):
         config_manager.set("general.minimize_to_tray", self.minimize_to_tray_check.isChecked())
         config_manager.set("general.show_notifications", self.notify_check.isChecked())
         
+        # UI
+        config_manager.set("ui.log_refresh_interval", self.log_refresh_spin.value())
+        
         # 通知
         config_manager.set("notifications.on_delete", self.notify_delete_check.isChecked())
         config_manager.set("notifications.on_conflict", self.notify_conflict_check.isChecked())
@@ -211,6 +260,14 @@ class SettingsDialog(QDialog):
         # 监控
         config_manager.set("monitor.debounce_seconds", self.debounce_spin.value() / 1000.0)
         config_manager.set("monitor.ignore_hidden", self.ignore_hidden_check.isChecked())
+        
+        # 存储
+        old_path = config_manager.get("general.storage_path", DATA_DIR)
+        new_path = self.storage_path_edit.text()
+        if old_path != new_path:
+            config_manager.set("general.storage_path", new_path)
+            # 通知日志管理器更换路径
+            logger.update_storage_path(new_path)
         
         config_manager.save_config()
         self.accept()

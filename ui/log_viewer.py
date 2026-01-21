@@ -99,9 +99,11 @@ class LogViewer(QWidget):
         layout.addWidget(self.log_table, 1)
     
     def _start_update_timer(self):
+        from utils.config_manager import config_manager
+        interval_seconds = config_manager.get("ui.log_refresh_interval", 3)
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self._check_new_logs)
-        self.update_timer.start(3000)
+        self.update_timer.start(interval_seconds * 1000)
     
     def _load_logs(self):
         level = self.level_combo.currentData()

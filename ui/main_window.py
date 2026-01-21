@@ -28,7 +28,9 @@ from .log_viewer import LogViewer
 from .settings_dialog import SettingsDialog
 from .system_tray import SystemTray
 from .file_change_viewer import FileChangeViewer
+from .file_change_viewer import FileChangeViewer
 from .crash_log_viewer import CrashLogViewer
+from .alert_panel import AlertPanel
 
 
 class TaskCard(QFrame):
@@ -172,6 +174,9 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
+        # 跟踪活跃的任务提醒 task_id -> alert_id
+        self._active_task_alerts = {}
+        
         self.setWindowTitle(f"{APP_NAME} v{APP_VERSION}")
         self.setMinimumSize(850, 500)
         self.resize(900, 550)
@@ -225,8 +230,10 @@ class MainWindow(QMainWindow):
         self.file_change_viewer = FileChangeViewer()
         self.content_stack.addWidget(self.file_change_viewer)
         
-        self.crash_log_viewer = CrashLogViewer()
-        self.content_stack.addWidget(self.crash_log_viewer)
+        self.content_stack.addWidget(self.file_change_viewer)
+        
+        self.alert_panel = AlertPanel()
+        self.content_stack.addWidget(self.alert_panel)
         
         self.content_stack.addWidget(QWidget())  # 设置占位
         
@@ -251,7 +258,7 @@ class MainWindow(QMainWindow):
         
         # 导航按钮
         self.nav_buttons = []
-        nav_items = [("📋 任务", 0), ("📊 监控", 1), ("📝 日志", 2), ("📁 变更", 3), ("🔧 专业", 4), ("⚙️ 设置", 5)]
+        nav_items = [("📋 任务", 0), ("📊 监控", 1), ("📝 日志", 2), ("📁 变更", 3), ("⚠️ 提醒", 4), ("⚙️ 设置", 5)]
         
         for text, index in nav_items:
             btn = QPushButton(text)
@@ -487,6 +494,24 @@ class MainWindow(QMainWindow):
         task = task_manager.get_task(task_id)
         if not task:
             return
+        
+        # 先进行安全检查
+        runner = task_manager._runners.get(task_id)
+        if runner:
+            safety = runner.check_sync_safety()
+            if not safety["safe"]:
+                # 使用新的提醒面板
+                def run_sync_callback():
+                    import threading
+                    def run_sync():
+                        task_manager.run_full_sync(task_id, skip_safety_check=True)
+                        self.tray.show_notification("同步完成", f"{task.name}", "info")
+                    threading.Thread(target=run_sync, daemon=True).start()
+                    self.tray.show_notification("开始同步", f"{task.name}...", "info")
+                
+                self._add_safety_alert(task, safety, run_sync_callback)
+                return
+        
         reply = QMessageBox.question(self, "确认", f"对任务 \"{task.name}\" 执行全量同步？",
                                       QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
@@ -496,9 +521,38 @@ class MainWindow(QMainWindow):
                 self.tray.show_notification("同步完成", f"{task.name}", "info")
             threading.Thread(target=run_sync, daemon=True).start()
             self.tray.show_notification("开始同步", f"{task.name}...", "info")
+
+    
+    def _add_safety_alert(self, task: BackupTask, safety_info: dict, callback: callable):
+        """添加或更新安全提醒"""
+        task_id = task.id
+        message = safety_info["message"]
+        batch_data = safety_info.get("batch_data")
+        
+        # 检查是否已有活跃提醒
+        if task_id in self._active_task_alerts:
+            alert_id = self._active_task_alerts[task_id]
+            self.alert_panel.update_alert(alert_id, message, batch_data)
+            # 可选：更新通知
+            # self.tray.show_notification("安全警告更新", f"任务 {task.name} 累积更多变更", "warning")
+        else:
+            alert_id = self.alert_panel.add_alert(
+                title="安全警告",
+                task_name=task.name,
+                message=message,
+                callback=callback,
+                batch_data=batch_data
+            )
+            self._active_task_alerts[task_id] = alert_id
+            
+            # 切换到提醒页
+            self._switch_page(4)
+            
+            # 显示通知
+            self.tray.show_notification("安全警告", f"任务 {task.name} 需要确认", "warning")
     
     def _on_start_all(self):
-        task_manager.start_all()
+        task_manager.start_all(force=True)
         for card in self._task_cards.values():
             card.refresh_status()
         self._update_status()
@@ -514,7 +568,7 @@ class MainWindow(QMainWindow):
     def _show_settings(self):
         dialog = SettingsDialog(self)
         dialog.exec_()
-        self.nav_buttons[3].setChecked(False)
+        self.nav_buttons[4].setChecked(False)
         self.nav_buttons[self.content_stack.currentIndex()].setChecked(True)
         self.tray.update_notification_settings()
     
@@ -542,6 +596,44 @@ class MainWindow(QMainWindow):
         """处理文件事件（在主线程执行）- 不做任何阻塞操作"""
         try:
             task = task_manager.get_task(task_id)
+            if not task:
+                return
+            task_name = task.name
+            
+            # 处理安全警报
+            if result.get("action") == "safety_alert":
+                accumulated = result.get("accumulated_count", 0)
+                batch_data = result.get("batch_data", [])
+                
+                def confirm_batch_callback(filtered_data=None):
+                    if filtered_data is not None:
+                        # 执行选中的操作
+                        task_manager.execute_batch(task_id, filtered_data)
+                        # 重置暂停状态（清除剩余未执行的）
+                        task_manager.reset_safety_pause(task_id)
+                        count = len(filtered_data)
+                        msg = f"{task_name}: 执行了 {count} 个选中的操作"
+                    else:
+                        # 如果没有过滤数据（旧逻辑兼容，虽然现在 UI 都会传空列表），执行全部
+                        task_manager.confirm_safety_alert(task_id)
+                        msg = f"{task_name}: 安全处理确认"
+                        
+                    # 清除活跃提醒记录
+                    if task_id in self._active_task_alerts:
+                        del self._active_task_alerts[task_id]
+                    self.tray.show_notification("执行批量更改", msg, "info")
+                
+                # 构造符合 _add_safety_alert 期望的 safety_info
+                safety_info = {
+                    "message": result.get("message", "检测到大量变更"),
+                    "warning_type": result.get("alert_type", "massive_change"),
+                    "task_id": task_id, # 传递 task_id 用于追踪
+                    "batch_data": batch_data # 传递数据供选择
+                }
+                
+                self._add_safety_alert(task, safety_info, confirm_batch_callback)
+                return
+            
             task_name = task.name if task else "未知"
             
             # 检查是否是目录操作或批量文件夹操作
@@ -630,12 +722,12 @@ class MainWindow(QMainWindow):
         # 优先显示同步状态
         if stats.get('is_syncing', False):
             self.status_label.setText("● 正在备份中...")
-            self.status_label.setStyleSheet(f"color: {COLORS['primary']}; font-weight: bold;")
+            self.status_label.setStyleSheet(f"color: #f59e0b; font-weight: bold;")  # 橙色
             self.tray.set_icon_status("syncing")
         elif stats['running'] > 0:
             # 计算上次备份时间
             last_run_str = stats.get('last_run_time', "")
-            status_text = "● 运行中"
+            status_text = "● 监控中"
             
             if last_run_str:
                 try:
@@ -652,12 +744,12 @@ class MainWindow(QMainWindow):
                     else:
                         time_str = f"{seconds // 86400}天前"
                         
-                    status_text = f"● 备份完成，上次备份 {time_str}"
+                    status_text = f"✓ 备份完成，上次 {time_str}"
                 except Exception:
                     pass
             
             self.status_label.setText(status_text)
-            self.status_label.setStyleSheet(f"color: {COLORS['success']};")
+            self.status_label.setStyleSheet(f"color: #22c55e;")  # 绿色
             self.tray.set_icon_status("running")
         else:
             self.status_label.setText("○ 就绪")

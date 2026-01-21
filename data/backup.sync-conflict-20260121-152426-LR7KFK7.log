@@ -1,0 +1,106 @@
+2026-01-20 17:43:36 [INFO] [task] 加载了 0 个备份任务
+2026-01-20 17:44:02 [INFO] [system] 程序启动
+2026-01-20 17:44:02 [INFO] [task] 加载了 0 个备份任务
+2026-01-20 17:44:03 [INFO] [scheduler] 调度器已启动
+2026-01-20 17:44:04 [INFO] [engine] 备份引擎已启动
+2026-01-20 17:47:46 [INFO] [task] 创建任务: ss (ID: a2db9102)
+2026-01-20 17:47:53 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 17:47:53 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-20 17:48:50 [INFO] [Task:a2db9102] [task] 开始全量同步: ss
+2026-01-20 17:48:52 [INFO] [sync] 开始全量同步: 48099 个文件 → 1 个目标
+2026-01-20 17:49:26 [INFO] [sync] 全量同步完成: 复制 48084, 删除 0, 跳过 15, 失败 0
+2026-01-20 17:49:36 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 17:49:37 [INFO] [Task:a2db9102] [task] 任务已停止: ss
+2026-01-20 17:49:39 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 17:49:39 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-20 17:55:40 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 17:55:40 [INFO] [Task:a2db9102] [task] 任务已停止: ss
+2026-01-20 17:55:41 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 17:55:41 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-20 17:55:43 [INFO] [Task:a2db9102] [task] 开始全量同步: ss
+2026-01-20 17:55:45 [INFO] [sync] 开始全量同步: 8258 个文件 → 1 个目标
+2026-01-20 17:55:52 [INFO] [sync] 全量同步完成: 复制 0, 删除 0, 跳过 8258, 失败 0
+2026-01-20 17:56:25 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 17:56:25 [INFO] [Task:a2db9102] [task] 任务已停止: ss
+2026-01-20 17:56:25 [INFO] [scheduler] 调度器已停止
+2026-01-20 17:56:26 [INFO] [engine] 备份引擎已停止
+2026-01-20 17:56:26 [INFO] [system] 程序退出
+2026-01-20 18:00:46 [INFO] [system] 程序启动
+2026-01-20 18:00:46 [INFO] [task] 加载了 1 个备份任务
+2026-01-20 18:00:47 [INFO] [scheduler] 调度器已启动
+2026-01-20 18:00:47 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:00:47 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-20 18:00:47 [INFO] [engine] 备份引擎已启动
+2026-01-20 18:02:15 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:02:15 [INFO] [Task:a2db9102] [task] 任务已停止: ss
+2026-01-20 18:02:15 [INFO] [scheduler] 调度器已停止
+2026-01-20 18:02:15 [INFO] [engine] 备份引擎已停止
+2026-01-20 18:02:15 [INFO] [system] 程序退出
+2026-01-20 18:08:44 [INFO] [system] 程序启动
+2026-01-20 18:08:44 [INFO] [task] 加载了 1 个备份任务
+2026-01-20 18:08:45 [INFO] [scheduler] 调度器已启动
+2026-01-20 18:08:45 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:08:45 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-20 18:08:45 [INFO] [engine] 备份引擎已启动
+2026-01-20 18:15:08 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:15:08 [INFO] [Task:a2db9102] [task] 任务已停止: ss
+2026-01-20 18:15:08 [INFO] [scheduler] 调度器已停止
+2026-01-20 18:15:08 [INFO] [engine] 备份引擎已停止
+2026-01-20 18:15:08 [INFO] [system] 程序退出
+2026-01-20 18:16:13 [INFO] [system] 程序启动
+2026-01-20 18:16:13 [INFO] [task] 加载了 1 个备份任务
+2026-01-20 18:16:14 [INFO] [scheduler] 调度器已启动
+2026-01-20 18:16:14 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:16:14 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-20 18:16:14 [INFO] [engine] 备份引擎已启动
+2026-01-20 18:16:15 [INFO] [system] 程序启动完成
+2026-01-20 18:16:35 [INFO] [task] 启动所有任务
+2026-01-20 18:16:53 [INFO] [Task:a2db9102] [task] 开始全量同步: ss
+2026-01-20 18:16:53 [INFO] [sync] 开始全量同步: 8258 个文件 → 1 个目标
+2026-01-20 18:16:55 [INFO] [sync] 全量同步完成: 复制 1, 删除 1, 跳过 8257, 失败 0
+2026-01-20 18:17:31 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: 官方备份
+2026-01-20 18:17:52 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: PVZ二次元游戏日语记忆库.tmx
+2026-01-20 18:17:56 [INFO] [Task:a2db9102] [sync] [ss] 文件移动: 语料库_PVZ_JP_1.zip
+2026-01-20 18:17:56 [INFO] [Task:a2db9102] [sync] [ss] 文件移动: 语料库_PVZ_JP_1.zip
+2026-01-20 18:17:56 [INFO] [Task:a2db9102] [sync] [ss] 文件修改: 语料库sZ_JP_1.zip
+2026-01-20 18:21:01 [INFO] [system] 程序启动
+2026-01-20 18:21:02 [INFO] [task] 加载了 1 个备份任务
+2026-01-20 18:21:03 [INFO] [scheduler] 调度器已启动
+2026-01-20 18:21:03 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:21:03 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-20 18:21:03 [INFO] [engine] 备份引擎已启动
+2026-01-20 18:21:03 [INFO] [system] 程序启动完成
+2026-01-20 18:21:12 [INFO] [system] 程序启动
+2026-01-20 18:21:12 [INFO] [task] 加载了 1 个备份任务
+2026-01-20 18:21:13 [INFO] [scheduler] 调度器已启动
+2026-01-20 18:21:14 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:21:14 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-20 18:21:14 [INFO] [engine] 备份引擎已启动
+2026-01-20 18:21:14 [INFO] [system] 程序启动完成
+2026-01-20 18:28:54 [INFO] [system] 程序启动
+2026-01-20 18:28:54 [INFO] [task] 加载了 1 个备份任务
+2026-01-20 18:28:55 [INFO] [scheduler] 调度器已启动
+2026-01-20 18:28:55 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:28:55 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-20 18:28:55 [INFO] [engine] 备份引擎已启动
+2026-01-20 18:28:55 [INFO] [system] 程序启动完成
+2026-01-20 18:29:45 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:29:45 [INFO] [Task:a2db9102] [task] 任务已停止: ss
+2026-01-20 18:29:45 [INFO] [scheduler] 调度器已停止
+2026-01-20 18:29:45 [INFO] [engine] 备份引擎已停止
+2026-01-20 18:29:45 [INFO] [system] 程序退出
+2026-01-20 18:29:45 [INFO] [system] 程序退出
+2026-01-20 18:46:27 [INFO] [system] 程序启动
+2026-01-20 18:46:27 [INFO] [task] 加载了 1 个备份任务
+2026-01-20 18:46:29 [INFO] [scheduler] 调度器已启动
+2026-01-20 18:46:29 [ERROR] [monitor] 监控路径不存在: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:46:29 [INFO] [engine] 备份引擎已启动
+2026-01-20 18:46:29 [INFO] [system] 程序启动完成
+2026-01-20 18:46:37 [ERROR] [monitor] 监控路径不存在: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:46:37 [INFO] [task] 启动任务: ss
+2026-01-20 18:46:38 [ERROR] [monitor] 监控路径不存在: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:46:38 [INFO] [task] 启动任务: ss
+2026-01-20 18:46:39 [ERROR] [monitor] 监控路径不存在: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:46:39 [INFO] [task] 启动任务: ss
+2026-01-20 18:46:39 [ERROR] [monitor] 监控路径不存在: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-20 18:46:39 [INFO] [task] 启动任务: ss

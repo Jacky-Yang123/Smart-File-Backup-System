@@ -20,15 +20,18 @@
     *   内置常用开发文件夹过滤（.git, node_modules, __pycache__, venv 等）。
     *   支持自定义通配符包含/排除规则。
 *   **安全保护**:
+    *   **智能安全中心**: 自动识别“空源文件夹”、“超大规模变更”等风险操作，并在执行前触发警告。
+    *   **批量缓冲与防抖**: 毫秒级自动聚合连续的文件变更，大幅降低系统碎碎片化同步带来的开销，支持用户自定义防抖延迟。
     *   **禁止删除模式**: 开启后，程序仅执行新增和修改同步，永不删除任何文件。
     *   **反向删除防护**: 单向备份中可选是否同步删除操作。
 *   **任务管理**:
     *   支持多任务并发运行。
     *   支持程序启动时自动开始备份任务。
-*   **现代交互**:
-    *   深淡色调和谐的 UI 设计。
-    *   系统托盘运行，不占用任务栏。
-    *   实时状态栏显示，精确到秒的“上次备份时间”。
+*   **现代交互与高级设置**:
+    *   **交互式核对**: 触发安全提醒后，支持展开查看详细变更列表，并能选择性地执行或丢弃特定变更。
+    *   **路径自定义**: 支持用户自定义日志记录和任务数据库的存储位置。
+    *   **状态实时展示**: 实时状态栏显示精确到秒的“上次备份时间”。
+    *   **系统托盘运行**: 深淡色调和谐的 UI 设计，支持隐藏到系统托盘。
 
 ### 安装与运行
 1.  确保已安装 Python 3.8+。
@@ -59,15 +62,18 @@ A high-performance intelligent file backup system built with Python and PyQt5. I
     *   Built-in filters for common development folders (.git, node_modules, __pycache__, venv, etc.).
     *   Supports custom wildcard include/exclude patterns.
 *   **Safety & Protection**:
-    *   **Disable Delete Mode**: When enabled, the program only syncs additions/modifications and never deletes any files.
+    *   **Smart Safety Center**: Automatically identifies risky operations like "Empty Source Folder" or "Massive Changes" and triggers alerts for confirmation.
+    *   **Batching & Debounce**: Aggregates continuous file changes within milliseconds, significantly reducing overhead; includes user-configurable debounce delay.
+    *   **Disable Delete Mode**: Only syncs additions/modifications and never deletes files when enabled.
     *   **Reverse Delete Control**: Optional deletion synchronization in one-way backups.
 *   **Task Management**:
     *   Supports multiple concurrent tasks.
     *   Auto-start tasks on application launch.
-*   **Modern Interaction**:
-    *   Sleek UI design with harmonious color palettes.
-    *   System tray integration (runs in the background).
-    *   Real-time status bar showing "Last backup time" accurate to the second.
+*   **Modern Interaction & Advanced Settings**:
+    *   **Interactive Review**: View detailed change lists within safety alerts and selectively execute or discard specific operations.
+    *   **Custom Storage**: User-configurable paths for logs and task database storage.
+    *   **Real-time Status Display**: Sleek UI with "Last backup time" accurate to the second.
+    *   **System Tray Integration**: Background operation with dark/light mode support.
 
 ### Installation & Usage
 1.  Ensure Python 3.8+ is installed.

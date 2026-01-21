@@ -7,13 +7,13 @@ from datetime import datetime
 from typing import List, Optional, Callable
 from dataclasses import dataclass
 from enum import Enum
-from peewee import SqliteDatabase, Model, CharField, TextField, DateTimeField
+from peewee import Proxy, SqliteDatabase, Model, CharField, TextField, DateTimeField
 
-from .constants import DATABASE_FILE, LOG_FILE, LogLevel
+from .constants import DATABASE_FILE, LOG_FILE, LogLevel, DATA_DIR
 
 
-# 数据库连接
-db = SqliteDatabase(DATABASE_FILE)
+# 数据库连接代理，允许运行时更换数据库
+db_proxy = Proxy()
 
 
 class LogEntry(Model):
@@ -26,7 +26,7 @@ class LogEntry(Model):
     details = TextField(null=True)
     
     class Meta:
-        database = db
+        database = db_proxy
         table_name = "logs"
 
 
@@ -43,7 +43,7 @@ class BackupHistory(Model):
     error_message = TextField(null=True)
     
     class Meta:
-        database = db
+        database = db_proxy
         table_name = "backup_history"
 
 
@@ -75,32 +75,68 @@ class Logger:
         self._log_queue = queue.Queue()
         self._is_running = True
         
-        self._setup_database()
-        self._setup_file_logger()
+        # 初始化数据库和日志
+        # 注意: config_manager可能尚未完全加载，先使用默认路径
+        try:
+            from .config_manager import config_manager
+            storage_path = config_manager.get("general.storage_path", DATA_DIR)
+        except Exception:
+            storage_path = DATA_DIR
+        
+        self._setup_database(storage_path)
+        self._setup_file_logger(storage_path)
         
         # 启动后台写入线程
         self._worker_thread = threading.Thread(target=self._db_worker, daemon=True)
         self._worker_thread.start()
     
-    def _setup_database(self):
+    def update_storage_path(self, new_path: str):
+        """更新存储路径并重启日志系统"""
+        if not new_path or not os.path.exists(new_path):
+            os.makedirs(new_path, exist_ok=True)
+            
+        print(f"Updating logger storage path to: {new_path}")
+        
+        # 1. 停止旧的文件日志处理器
+        for handler in self._file_logger.handlers[:]:
+            handler.close()
+            self._file_logger.removeHandler(handler)
+            
+        # 2. 重新初始化
+        self._setup_database(new_path)
+        self._setup_file_logger(new_path)
+
+    def _setup_database(self, storage_path: str):
         """初始化数据库"""
         try:
-            db.connect(reuse_if_open=True)
+            db_file = os.path.join(storage_path, "backup.db")
+            os.makedirs(os.path.dirname(db_file), exist_ok=True)
+            
+            # 关闭旧连接
+            if not db_proxy.is_closed():
+                db_proxy.close()
+                
+            new_db = SqliteDatabase(db_file)
+            db_proxy.initialize(new_db)
+            
+            db_proxy.connect(reuse_if_open=True)
             # 启用 WAL 模式提高并发性能
-            db.execute_sql('PRAGMA journal_mode=WAL;')
-            db.create_tables([LogEntry, BackupHistory], safe=True)
+            db_proxy.execute_sql('PRAGMA journal_mode=WAL;')
+            db_proxy.create_tables([LogEntry, BackupHistory], safe=True)
         except Exception as e:
             print(f"Database setup error: {e}")
     
-    def _setup_file_logger(self):
+    def _setup_file_logger(self, storage_path: str):
         """设置文件日志"""
         self._file_logger = logging.getLogger("backup_system")
         self._file_logger.setLevel(logging.DEBUG)
         
+        log_file = os.path.join(storage_path, "backup.log")
+        
         # 文件处理器
         try:
-            os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
-            file_handler = logging.FileHandler(LOG_FILE, encoding='utf-8')
+            os.makedirs(os.path.dirname(log_file), exist_ok=True)
+            file_handler = logging.FileHandler(log_file, encoding='utf-8')
             file_handler.setLevel(logging.DEBUG)
             
             # 格式化

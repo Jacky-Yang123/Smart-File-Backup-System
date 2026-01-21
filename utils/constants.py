@@ -70,7 +70,8 @@ DEFAULT_CONFIG = {
         "auto_start": False,          # 开机自启动
         "minimize_to_tray": True,     # 最小化到托盘
         "show_notifications": True,   # 显示通知
-        "language": "zh_CN"           # 语言
+        "language": "zh_CN",          # 语言
+        "storage_path": DATA_DIR       # 日志和配置存储根路径
     },
     "backup": {
         "default_sync_mode": SyncMode.ONE_WAY.value,

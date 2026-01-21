@@ -28,6 +28,7 @@ def create_app_icon(status: str = "idle") -> QIcon:
     # 根据状态选择颜色
     colors = {
         "running": "#22c55e",  # 绿色
+        "syncing": "#f59e0b",  # 橙色 - 同步中
         "paused": "#f59e0b",   # 黄色
         "error": "#ef4444",    # 红色
         "idle": "#6366f1",     # 蓝色
