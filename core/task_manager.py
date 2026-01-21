@@ -29,6 +29,7 @@ class BackupTask:
     enabled: bool = True
     auto_start: bool = False
     delete_orphans: bool = False
+    initial_sync_delete: bool = False # 启动时全量同步是否删除目标多余文件
     reverse_delete: bool = False  # 单向备份：目标删除时是否同步删除源文件
     disable_delete: bool = False  # 禁止删除操作：防止任何文件被删除
     file_count_diff_threshold: int = 20  # 双向同步：文件数量差异警告阈值
@@ -387,10 +388,24 @@ class TaskRunner:
                     # 稍微延迟一下，让UI先响应启动状态
                     import time
                     time.sleep(0.5)
-                    self.run_full_sync()
+                    # 初始同步：如果有配置 initial_sync_delete，则使用它；否则使用默认的 delete_orphans (通常是 False)
+                    # 注意：如果 initial_sync_delete 为 True，将执行删除；否则按 delete_orphans (通常为 False)
+                    # 但为了安全起见，初始同步如果没明确开启 initial_sync_delete，不应该执行删除，哪怕 delete_orphans 为 True
+                    # 不过根据需求，'delete_orphans' 也是一个全量同步时的开关。
+                    # 逻辑调整：
+                    # 1. 如果 initial_sync_delete=True (启动时删除)，则强制 delete_orphans=True (仅针对这一次)
+                    # 2. 如果 initial_sync_delete=False (启动时不删除)，则强制 delete_orphans=False (仅针对这一次，避免误删)
+                    #    或者遵循 delete_orphans 设置？
+                    #    用户需求是 "启动时: 删除目标多余文件"，意味着这是专门针对启动时的策略。
+                    #    如果未勾选，即使 "全量同步时删除" 勾选了，启动时也最好不要删？或者保持一致？
+                    #    通常 "全量同步时删除" 用于手动触发。启动时的自动扫描为了安全，默认应该是不删的，除非专门勾选了针对启动的选项。
+                    
+                    delete_rule = self.task.initial_sync_delete
+                    self.run_full_sync(delete_orphans_override=delete_rule)
                     
                 threading.Thread(target=auto_sync, daemon=True).start()
-                logger.info(f"触发启动时全量同步: {self.task.name}", task_id=self.task.id, category="task")
+                logger.info(f"触发启动时全量同步(删除策略={self.task.initial_sync_delete}): {self.task.name}", 
+                           task_id=self.task.id, category="task")
                 
                 return True
                 
@@ -438,7 +453,7 @@ class TaskRunner:
                 self._set_status(TaskStatus.RUNNING)
                 logger.info(f"任务已恢复: {self.task.name}", task_id=self.task.id, category="task")
     
-    def run_full_sync(self, skip_safety_check: bool = False) -> bool:
+    def run_full_sync(self, skip_safety_check: bool = False, delete_orphans_override: Optional[bool] = None) -> bool:
         """执行全量同步"""
         # 获取操作锁，防止与实时同步冲突
         with self._operation_lock:
@@ -454,9 +469,11 @@ class TaskRunner:
                         disable_delete=self.task.disable_delete
                     )
                 
-                logger.info(f"开始全量同步: {self.task.name}", task_id=self.task.id, category="task")
+                delete_orphans = delete_orphans_override if delete_orphans_override is not None else self.task.delete_orphans
+                
+                logger.info(f"开始全量同步(清理={delete_orphans}): {self.task.name}", task_id=self.task.id, category="task")
                 self._is_syncing = True
-                results = self._processor.full_sync(delete_orphans=self.task.delete_orphans)
+                results = self._processor.full_sync(delete_orphans=delete_orphans)
                 self.task.last_run_time = datetime.now().isoformat()
                 task_manager.save_tasks()  # 保存最后运行时间
 

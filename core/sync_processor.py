@@ -275,23 +275,26 @@ class SyncProcessor:
                         message="[模拟] 将删除文件"
                     )
 
-                success, error = safe_delete_file(target_file)
-                if success:
-                    return SyncResult(
-                        success=True,
-                        action="delete",
-                        source_path=deleted_path,
-                        target_path=target_file,
-                        message="文件已删除"
-                    )
+                if os.path.isdir(target_file):
+                    shutil.rmtree(target_file)
                 else:
-                    return SyncResult(
-                        success=False,
-                        action="error",
-                        source_path=deleted_path,
-                        target_path=target_file,
-                        message=f"删除失败: {error}"
-                    )
+                    success, error = safe_delete_file(target_file)
+                    if not success:
+                         return SyncResult(
+                            success=False,
+                            action="error",
+                            source_path=deleted_path,
+                            target_path=target_file,
+                            message=f"删除失败: {error}"
+                        )
+
+                return SyncResult(
+                    success=True,
+                    action="delete",
+                    source_path=deleted_path,
+                    target_path=target_file,
+                    message="文件/文件夹已删除"
+                )
             
             return SyncResult(
                 success=True,

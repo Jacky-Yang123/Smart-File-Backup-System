@@ -113,7 +113,11 @@ class LogViewer(QWidget):
     def _display_logs(self, logs: List[dict]):
         search_text = self.search_edit.text().lower()
         
+        # 优化：如果是追加模式且没有搜索关键词，可以使用增量更新
+        # 但为了简单起见，这里先保持全量刷新，但处理好时间格式
+        
         self.log_table.setRowCount(0)
+        self.log_table.setSortingEnabled(False) # 暂停排序以提高性能
         
         for log in reversed(logs):
             if search_text and search_text not in log.get("message", "").lower():
@@ -124,7 +128,18 @@ class LogViewer(QWidget):
             
             # 时间
             timestamp = log.get("timestamp")
-            time_str = timestamp.strftime("%H:%M:%S") if hasattr(timestamp, "strftime") else str(timestamp)
+            if isinstance(timestamp, str):
+                # 尝试解析 ISO 格式
+                try:
+                    dt = datetime.fromisoformat(timestamp)
+                    time_str = dt.strftime("%H:%M:%S")
+                except ValueError:
+                    time_str = timestamp
+            elif hasattr(timestamp, "strftime"):
+                time_str = timestamp.strftime("%H:%M:%S")
+            else:
+                time_str = str(timestamp)
+            
             time_item = QTableWidgetItem(time_str)
             time_item.setForeground(QColor(COLORS["text_muted"]))
             self.log_table.setItem(row, 0, time_item)
@@ -143,6 +158,8 @@ class LogViewer(QWidget):
             
             # 消息
             self.log_table.setItem(row, 3, QTableWidgetItem(log.get("message", "")))
+        
+        self.log_table.setSortingEnabled(True)
         
         if self._auto_scroll:
             self.log_table.scrollToBottom()

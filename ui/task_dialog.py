@@ -22,7 +22,7 @@ class TaskDialog(QDialog):
         super().__init__(parent)
         self.task = task
         self.setWindowTitle("编辑任务" if task else "新建任务")
-        self.setFixedSize(500, 450)
+        self.setFixedSize(550, 500)
         self.setModal(True)
         self.setStyleSheet(f"background-color: {COLORS['bg_dark']};")
         
@@ -32,11 +32,13 @@ class TaskDialog(QDialog):
     
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(16)
+        layout.setContentsMargins(24, 24, 24, 24)
         
         # 标签页
         tab_widget = QTabWidget()
+        # 增加标签页内容的Margins
+        tab_widget.setStyleSheet("QTabWidget::pane { padding: 12px; }")
         layout.addWidget(tab_widget, 1)
         
         tab_widget.addTab(self._create_basic_tab(), "基本")
@@ -49,12 +51,14 @@ class TaskDialog(QDialog):
         
         cancel_btn = QPushButton("取消")
         cancel_btn.setProperty("class", "secondary")
-        cancel_btn.setFixedHeight(28)
+        cancel_btn.setFixedHeight(30)
+        cancel_btn.setFixedWidth(80)
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
         
         save_btn = QPushButton("保存")
-        save_btn.setFixedHeight(28)
+        save_btn.setFixedHeight(30)
+        save_btn.setFixedWidth(80)
         save_btn.clicked.connect(self._save_task)
         btn_layout.addWidget(save_btn)
         
@@ -63,14 +67,15 @@ class TaskDialog(QDialog):
     def _create_basic_tab(self) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        layout.setSpacing(10)
-        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(14)
+        layout.setContentsMargins(16, 16, 16, 16)
         
         form = QFormLayout()
-        form.setSpacing(8)
+        form.setSpacing(12)
         
         # 任务名称
         self.name_edit = QLineEdit()
+        self.name_edit.setFixedHeight(28)
         self.name_edit.setPlaceholderText("输入任务名称")
         form.addRow("名称:", self.name_edit)
         
@@ -174,7 +179,13 @@ class TaskDialog(QDialog):
         self.delete_orphans_check.setToolTip("执行全量同步时，删除目标目录中存在但源目录中不存在的文件")
         layout.addWidget(self.delete_orphans_check)
         
-        self.reverse_delete_check = QCheckBox("目标文件删除时，同步删除源文件 (仅单向同步)")
+        # 初始同步选项 (新增)
+        self.initial_scan_delete_check = QCheckBox("启动时: 删除目标多余文件 (仅单向)")
+        self.initial_scan_delete_check.setToolTip("程序启动首次扫描时，如果目标文件夹有源文件夹没有的文件，是否删除。默认保留。")
+        self.initial_scan_delete_check.setStyleSheet(f"color: {COLORS['warning']};")
+        layout.addWidget(self.initial_scan_delete_check)
+
+        self.reverse_delete_check = QCheckBox("实时: 目标删除时同步删除源 (仅单向)")
         self.reverse_delete_check.setToolTip("当目标目录中的文件被删除时，源目录中对应的文件也会被删除")
         self.reverse_delete_check.setStyleSheet(f"color: {COLORS['warning']};")
         layout.addWidget(self.reverse_delete_check)
@@ -359,6 +370,7 @@ class TaskDialog(QDialog):
             self.conflict_combo.setCurrentIndex(idx)
         
         self.delete_orphans_check.setChecked(task.delete_orphans)
+        self.initial_scan_delete_check.setChecked(getattr(task, 'initial_sync_delete', False))
         self.reverse_delete_check.setChecked(getattr(task, 'reverse_delete', False))
         self.disable_delete_check.setChecked(getattr(task, 'disable_delete', False))
         self.disable_delete_check.setChecked(getattr(task, 'disable_delete', False))
@@ -445,6 +457,7 @@ class TaskDialog(QDialog):
             enabled=self.enabled_check.isChecked(),
             auto_start=self.auto_start_check.isChecked(),
             delete_orphans=self.delete_orphans_check.isChecked(),
+            initial_sync_delete=self.initial_scan_delete_check.isChecked(),
             reverse_delete=self.reverse_delete_check.isChecked(),
             disable_delete=self.disable_delete_check.isChecked(),
             file_count_diff_threshold=self.threshold_spinbox.value(),
