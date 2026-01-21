@@ -6,7 +6,7 @@
     "language": "zh_CN"
   },
   "backup": {
-    "default_sync_mode": "one_way",
+    "default_sync_mode": "two_way",
     "default_conflict_strategy": "newest_wins",
     "max_concurrent_tasks": 3,
     "compare_method": "mtime",
@@ -18,7 +18,12 @@
     "max_size_mb": 100
   },
   "monitor": {
-    "debounce_seconds": 1.0,
+    "debounce_seconds": 0.1,
     "ignore_hidden": true
+  },
+  "notifications": {
+    "on_delete": true,
+    "on_conflict": true,
+    "on_error": true
   }
 }

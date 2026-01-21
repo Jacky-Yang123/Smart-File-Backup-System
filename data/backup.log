@@ -5535,3 +5535,357 @@
 2026-01-21 14:02:01 [INFO] [sync] 开始全量同步: 156 个文件 → 1 个目标
 2026-01-21 14:02:01 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
 2026-01-21 14:02:01 [INFO] [sync] 全量同步完成: 复制 0, 删除 0, 跳过 156, 失败 0
+2026-01-21 14:09:33 [INFO] [system] 程序启动
+2026-01-21 14:09:33 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:09:34 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:09:34 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:09:34 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:09:34 [INFO] [Task:a2db9102] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:09:34 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-21 14:09:34 [INFO] [Task:a2db9102] [task] 触发启动时全量同步: ss
+2026-01-21 14:09:34 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:09:34 [INFO] [system] 程序启动完成
+2026-01-21 14:09:34 [INFO] [Task:a2db9102] [task] 开始全量同步: ss
+2026-01-21 14:09:34 [INFO] [sync] 开始全量同步: 156 个文件 → 1 个目标
+2026-01-21 14:09:35 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:09:35 [INFO] [sync] 全量同步完成: 复制 0, 删除 0, 跳过 156, 失败 0
+2026-01-21 14:09:49 [INFO] [Task:a2db9102] [sync] [ss] 文件修改: s需f改 - 副本 - 副本 (2).txt
+2026-01-21 14:09:50 [INFO] [Task:a2db9102] [sync] [ss] 文件修改: s需f改 - 副本 - 副本 (2)_v1.txt
+2026-01-21 14:09:54 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: s需f改 - 副本 - 副本 (2)_v1.txt
+2026-01-21 14:10:07 [INFO] [Task:a2db9102] [sync] [ss] 文件修改: s需f改 - 副本 - 副本 (2).txt
+2026-01-21 14:10:08 [INFO] [Task:a2db9102] [sync] [ss] 文件修改: s需f改 - 副本 - 副本 (2)_v1.txt
+2026-01-21 14:10:14 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: s需f改 - 副本 - 副本 (2).txt
+2026-01-21 14:10:14 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: s需f改 - 副本 - 副本 (2)_v1.txt
+2026-01-21 14:10:28 [INFO] [Task:a2db9102] [sync] [ss] 文件修改: s需f改 - 副本 - 副本.txt
+2026-01-21 14:10:29 [INFO] [Task:a2db9102] [sync] [ss] 文件修改: s需f改 - 副本 - 副本_v1.txt
+2026-01-21 14:13:51 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: s需f改 - 副本 - 副本_v1.txt
+2026-01-21 14:13:58 [INFO] [Task:a2db9102] [sync] [ss] 文件修改: s需f改 - 副本 - 副本 - 副本.txt
+2026-01-21 14:14:02 [INFO] [Task:a2db9102] [sync] [ss] 文件移动: s需f改 - 副本 - 副本.txt
+2026-01-21 14:14:02 [INFO] [Task:a2db9102] [sync] [ss] 文件移动: s需f改 - 副本 - 副本.txt
+2026-01-21 14:15:41 [INFO] [system] 程序启动
+2026-01-21 14:15:41 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:15:42 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:15:42 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:15:42 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:15:42 [INFO] [Task:a2db9102] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:15:42 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-21 14:15:42 [INFO] [Task:a2db9102] [task] 触发启动时全量同步: ss
+2026-01-21 14:15:43 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:15:43 [INFO] [system] 程序启动完成
+2026-01-21 14:15:43 [INFO] [Task:a2db9102] [task] 开始全量同步: ss
+2026-01-21 14:15:43 [INFO] [sync] 开始全量同步: 156 个文件 → 1 个目标
+2026-01-21 14:15:43 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:15:43 [INFO] [sync] 全量同步完成: 复制 0, 删除 0, 跳过 156, 失败 0
+2026-01-21 14:15:52 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:15:52 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:15:52 [INFO] [Task:a2db9102] [task] 任务已停止: ss
+2026-01-21 14:15:53 [INFO] [scheduler] 调度器已停止
+2026-01-21 14:15:53 [INFO] [engine] 备份引擎已停止
+2026-01-21 14:15:53 [INFO] [system] 程序退出
+2026-01-21 14:15:53 [INFO] [system] 程序退出
+2026-01-21 14:16:29 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:16:29 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:16:29 [INFO] [Task:a2db9102] [task] 任务已停止: ss
+2026-01-21 14:16:30 [INFO] [scheduler] 调度器已停止
+2026-01-21 14:16:30 [INFO] [engine] 备份引擎已停止
+2026-01-21 14:16:30 [INFO] [system] 程序退出
+2026-01-21 14:16:30 [INFO] [system] 程序退出
+2026-01-21 14:16:31 [INFO] [system] 程序启动
+2026-01-21 14:16:31 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:16:32 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:16:32 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:16:32 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:16:32 [INFO] [Task:a2db9102] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:16:32 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-21 14:16:33 [INFO] [Task:a2db9102] [task] 触发启动时全量同步: ss
+2026-01-21 14:16:33 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:16:33 [INFO] [system] 程序启动完成
+2026-01-21 14:16:33 [INFO] [Task:a2db9102] [task] 开始全量同步: ss
+2026-01-21 14:16:33 [INFO] [sync] 开始全量同步: 156 个文件 → 1 个目标
+2026-01-21 14:16:33 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:16:33 [INFO] [sync] 全量同步完成: 复制 2, 删除 0, 跳过 155, 失败 0
+2026-01-21 14:17:11 [INFO] [Task:a2db9102] [task] 开始全量同步: ss
+2026-01-21 14:17:11 [INFO] [sync] 开始全量同步: 157 个文件 → 1 个目标
+2026-01-21 14:17:11 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:17:11 [INFO] [sync] 全量同步完成: 复制 4, 删除 0, 跳过 155, 失败 0
+2026-01-21 14:17:33 [INFO] [Task:a2db9102] [sync] [ss] 文件修改: s需f改_v2.txt
+2026-01-21 14:17:33 [INFO] [Task:a2db9102] [sync] [ss] 文件修改: s需f改_v2_v1.txt
+2026-01-21 14:23:25 [INFO] [system] 程序启动
+2026-01-21 14:23:25 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:23:27 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:23:27 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:23:27 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:23:27 [INFO] [Task:a2db9102] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:23:27 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-21 14:23:27 [INFO] [Task:a2db9102] [task] 触发启动时全量同步: ss
+2026-01-21 14:23:27 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:23:27 [INFO] [system] 程序启动完成
+2026-01-21 14:23:27 [INFO] [Task:a2db9102] [task] 开始全量同步: ss
+2026-01-21 14:23:27 [INFO] [sync] 开始全量同步: 160 个文件 → 1 个目标
+2026-01-21 14:23:27 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:23:27 [INFO] [sync] 全量同步完成: 复制 6, 删除 0, 跳过 157, 失败 0
+2026-01-21 14:23:41 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: s需f改_v1_v1.txt
+2026-01-21 14:23:41 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: s需f改_v1_v2.txt
+2026-01-21 14:23:41 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: s需f改_v2.txt
+2026-01-21 14:23:41 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: s需f改_v2_v1.txt
+2026-01-21 14:23:41 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: s需f改_v2_v2.txt
+2026-01-21 14:23:41 [INFO] [Task:a2db9102] [sync] [ss] 文件删除: s需f改_v3.txt
+2026-01-21 14:24:38 [INFO] [Task:a2db9102] [sync] [ss] 文件移动: s需f改_v1.txt
+2026-01-21 14:24:38 [INFO] [Task:a2db9102] [sync] [ss] 文件移动: s需f改_v1.txt
+2026-01-21 14:24:44 [INFO] [system] 程序启动
+2026-01-21 14:24:44 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:24:46 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:24:46 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:24:46 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:24:46 [INFO] [Task:a2db9102] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:24:46 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-21 14:24:46 [INFO] [Task:a2db9102] [task] 触发启动时全量同步: ss
+2026-01-21 14:24:46 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:24:46 [INFO] [system] 程序启动完成
+2026-01-21 14:24:46 [INFO] [Task:a2db9102] [task] 开始全量同步: ss
+2026-01-21 14:24:46 [INFO] [sync] 开始全量同步: 157 个文件 → 1 个目标
+2026-01-21 14:24:46 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:24:46 [INFO] [sync] 全量同步完成: 复制 4, 删除 0, 跳过 155, 失败 0
+2026-01-21 14:24:47 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:24:47 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:24:47 [INFO] [Task:a2db9102] [task] 任务已停止: ss
+2026-01-21 14:24:47 [INFO] [scheduler] 调度器已停止
+2026-01-21 14:24:47 [INFO] [engine] 备份引擎已停止
+2026-01-21 14:24:47 [INFO] [system] 程序退出
+2026-01-21 14:24:47 [INFO] [system] 程序退出
+2026-01-21 14:24:48 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:24:48 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:24:48 [INFO] [Task:a2db9102] [task] 任务已停止: ss
+2026-01-21 14:24:49 [INFO] [scheduler] 调度器已停止
+2026-01-21 14:24:49 [INFO] [engine] 备份引擎已停止
+2026-01-21 14:24:49 [INFO] [system] 程序退出
+2026-01-21 14:24:49 [INFO] [system] 程序退出
+2026-01-21 14:24:51 [INFO] [system] 程序启动
+2026-01-21 14:24:51 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:24:52 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:24:52 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:24:52 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:24:52 [INFO] [Task:a2db9102] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:24:52 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-21 14:24:52 [INFO] [Task:a2db9102] [task] 触发启动时全量同步: ss
+2026-01-21 14:24:52 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:24:52 [INFO] [system] 程序启动完成
+2026-01-21 14:24:53 [INFO] [Task:a2db9102] [task] 开始全量同步: ss
+2026-01-21 14:24:53 [INFO] [sync] 开始全量同步: 159 个文件 → 1 个目标
+2026-01-21 14:24:53 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:24:53 [INFO] [sync] 全量同步完成: 复制 4, 删除 0, 跳过 157, 失败 0
+2026-01-21 14:25:21 [INFO] [system] 程序启动
+2026-01-21 14:25:21 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:25:22 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:25:23 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:25:23 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:25:23 [INFO] [Task:a2db9102] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:25:23 [INFO] [Task:a2db9102] [task] 任务已启动: ss
+2026-01-21 14:25:23 [INFO] [Task:a2db9102] [task] 触发启动时全量同步: ss
+2026-01-21 14:25:23 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:25:23 [INFO] [system] 程序启动完成
+2026-01-21 14:25:23 [INFO] [Task:a2db9102] [task] 开始全量同步: ss
+2026-01-21 14:25:23 [INFO] [sync] 开始全量同步: 156 个文件 → 1 个目标
+2026-01-21 14:25:23 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:25:23 [INFO] [sync] 全量同步完成: 复制 3, 删除 0, 跳过 154, 失败 0
+2026-01-21 14:44:59 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:44:59 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:44:59 [INFO] [Task:a2db9102] [task] 任务已停止: ss
+2026-01-21 14:44:59 [INFO] [scheduler] 调度器已停止
+2026-01-21 14:44:59 [INFO] [engine] 备份引擎已停止
+2026-01-21 14:44:59 [INFO] [system] 程序退出
+2026-01-21 14:45:00 [INFO] [system] 程序退出
+2026-01-21 14:46:05 [INFO] [system] 程序启动
+2026-01-21 14:46:05 [ERROR] [task] 加载任务失败: BackupTask.__init__() got an unexpected keyword argument 'compare_method'
+2026-01-21 14:46:06 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:46:06 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:46:07 [INFO] [system] 程序启动完成
+2026-01-21 14:47:50 [INFO] [task] 创建任务: assasd (ID: 4d12f771)
+2026-01-21 14:47:50 [INFO] [task] 创建任务: assasd
+2026-01-21 14:47:52 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:47:52 [INFO] [Task:4d12f771] [task] 任务已启动: assasd
+2026-01-21 14:47:52 [INFO] [Task:4d12f771] [task] 触发启动时全量同步: assasd
+2026-01-21 14:47:52 [INFO] [task] 启动任务: assasd
+2026-01-21 14:47:52 [INFO] [Task:4d12f771] [task] 开始全量同步: assasd
+2026-01-21 14:47:52 [INFO] [sync] 开始全量同步: 157 个文件 → 1 个目标
+2026-01-21 14:47:52 [INFO] [sync] 全量同步完成: 复制 1, 删除 0, 跳过 156, 失败 0
+2026-01-21 14:48:36 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:48:36 [INFO] [Task:4d12f771] [task] 任务已停止: assasd
+2026-01-21 14:48:36 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:48:36 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:48:36 [INFO] [Task:4d12f771] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:48:36 [INFO] [Task:4d12f771] [task] 任务已启动: assasd
+2026-01-21 14:48:36 [INFO] [Task:4d12f771] [task] 触发启动时全量同步: assasd
+2026-01-21 14:48:36 [INFO] [Task:4d12f771] [task] 更新任务: assasd
+2026-01-21 14:48:37 [INFO] [Task:4d12f771] [task] 开始全量同步: assasd
+2026-01-21 14:48:37 [INFO] [sync] 开始全量同步: 157 个文件 → 1 个目标
+2026-01-21 14:48:37 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:48:37 [INFO] [sync] 全量同步完成: 复制 2, 删除 0, 跳过 156, 失败 0
+2026-01-21 14:48:51 [INFO] [Task:4d12f771] [sync] [assasd] 文件修改: s需f改 - 副本 - 副本 - 副本.txt
+2026-01-21 14:49:01 [INFO] [Task:4d12f771] [sync] [assasd] 文件删除: s需f改 - 副本 - 副本 - 副本_v1.txt
+2026-01-21 14:49:08 [INFO] [Task:4d12f771] [sync] [assasd] 文件修改: s需f改.txt
+2026-01-21 14:49:21 [INFO] [Task:4d12f771] [sync] [assasd] 文件修改: s需f改.txt
+2026-01-21 14:49:45 [INFO] [Task:4d12f771] [sync] [assasd] 文件移动: s需f改 - 副本 - 副本 - 副本.txt
+2026-01-21 14:49:45 [INFO] [Task:4d12f771] [sync] [assasd] 文件移动: s需f改 - 副本 - 副本 - 副本.txt
+2026-01-21 14:49:48 [INFO] [Task:4d12f771] [sync] [assasd] 文件修改: s需f本.txt
+2026-01-21 14:50:23 [INFO] [system] 程序启动
+2026-01-21 14:50:24 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:50:25 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:50:25 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:50:25 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:50:25 [INFO] [Task:4d12f771] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:50:25 [INFO] [Task:4d12f771] [task] 任务已启动: assasd
+2026-01-21 14:50:25 [INFO] [Task:4d12f771] [task] 触发启动时全量同步: assasd
+2026-01-21 14:50:25 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:50:25 [INFO] [system] 程序启动完成
+2026-01-21 14:50:25 [INFO] [Task:4d12f771] [task] 开始全量同步: assasd
+2026-01-21 14:50:25 [INFO] [sync] 开始全量同步: 157 个文件 → 1 个目标
+2026-01-21 14:50:25 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:50:25 [INFO] [sync] 全量同步完成: 复制 5, 删除 0, 跳过 154, 失败 0
+2026-01-21 14:50:51 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:50:51 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:50:51 [INFO] [Task:4d12f771] [task] 任务已停止: assasd
+2026-01-21 14:50:52 [INFO] [scheduler] 调度器已停止
+2026-01-21 14:50:52 [INFO] [engine] 备份引擎已停止
+2026-01-21 14:50:52 [INFO] [system] 程序退出
+2026-01-21 14:50:52 [INFO] [system] 程序退出
+2026-01-21 14:51:13 [INFO] [system] 程序启动
+2026-01-21 14:51:13 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:51:14 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:51:14 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:51:14 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:51:14 [INFO] [Task:4d12f771] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:51:14 [INFO] [Task:4d12f771] [task] 任务已启动: assasd
+2026-01-21 14:51:14 [INFO] [Task:4d12f771] [task] 触发启动时全量同步: assasd
+2026-01-21 14:51:14 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:51:14 [INFO] [system] 程序启动完成
+2026-01-21 14:51:14 [INFO] [Task:4d12f771] [task] 开始全量同步: assasd
+2026-01-21 14:51:14 [INFO] [sync] 开始全量同步: 156 个文件 → 1 个目标
+2026-01-21 14:51:14 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:51:14 [INFO] [sync] 全量同步完成: 复制 1, 删除 0, 跳过 155, 失败 0
+2026-01-21 14:51:33 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:51:33 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:51:33 [INFO] [Task:4d12f771] [task] 任务已停止: assasd
+2026-01-21 14:51:34 [INFO] [scheduler] 调度器已停止
+2026-01-21 14:51:34 [INFO] [engine] 备份引擎已停止
+2026-01-21 14:51:34 [INFO] [system] 程序退出
+2026-01-21 14:51:34 [INFO] [system] 程序退出
+2026-01-21 14:51:45 [INFO] [system] 程序启动
+2026-01-21 14:51:45 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:51:46 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:51:46 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:51:46 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:51:46 [INFO] [Task:4d12f771] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:51:46 [INFO] [Task:4d12f771] [task] 任务已启动: assasd
+2026-01-21 14:51:46 [INFO] [Task:4d12f771] [task] 触发启动时全量同步: assasd
+2026-01-21 14:51:46 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:51:46 [INFO] [system] 程序启动完成
+2026-01-21 14:51:47 [INFO] [Task:4d12f771] [task] 开始全量同步: assasd
+2026-01-21 14:51:47 [INFO] [sync] 开始全量同步: 156 个文件 → 1 个目标
+2026-01-21 14:51:47 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:51:47 [INFO] [sync] 全量同步完成: 复制 1, 删除 0, 跳过 156, 失败 0
+2026-01-21 14:52:00 [INFO] [Task:4d12f771] [sync] [assasd] 文件修改: s需f本.txt
+2026-01-21 14:52:02 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:52:02 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:52:03 [INFO] [Task:4d12f771] [task] 任务已停止: assasd
+2026-01-21 14:52:03 [INFO] [scheduler] 调度器已停止
+2026-01-21 14:52:03 [INFO] [engine] 备份引擎已停止
+2026-01-21 14:52:03 [INFO] [system] 程序退出
+2026-01-21 14:52:03 [INFO] [system] 程序退出
+2026-01-21 14:52:15 [INFO] [system] 程序启动
+2026-01-21 14:52:15 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:52:16 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:52:16 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:52:16 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:52:16 [INFO] [Task:4d12f771] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:52:16 [INFO] [Task:4d12f771] [task] 任务已启动: assasd
+2026-01-21 14:52:16 [INFO] [Task:4d12f771] [task] 触发启动时全量同步: assasd
+2026-01-21 14:52:16 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:52:16 [INFO] [system] 程序启动完成
+2026-01-21 14:52:17 [INFO] [Task:4d12f771] [task] 开始全量同步: assasd
+2026-01-21 14:52:17 [INFO] [sync] 开始全量同步: 156 个文件 → 1 个目标
+2026-01-21 14:52:17 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:52:17 [INFO] [sync] 全量同步完成: 复制 1, 删除 0, 跳过 156, 失败 0
+2026-01-21 14:52:52 [INFO] [system] 程序启动
+2026-01-21 14:52:52 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:52:53 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:52:53 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:52:53 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:52:53 [INFO] [Task:4d12f771] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:52:53 [INFO] [Task:4d12f771] [task] 任务已启动: assasd
+2026-01-21 14:52:53 [INFO] [Task:4d12f771] [task] 触发启动时全量同步: assasd
+2026-01-21 14:52:53 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:52:53 [INFO] [system] 程序启动完成
+2026-01-21 14:52:54 [INFO] [Task:4d12f771] [task] 开始全量同步: assasd
+2026-01-21 14:52:54 [INFO] [sync] 开始全量同步: 156 个文件 → 1 个目标
+2026-01-21 14:52:54 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:52:54 [INFO] [sync] 全量同步完成: 复制 2, 删除 0, 跳过 155, 失败 0
+2026-01-21 14:54:06 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:54:06 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:54:06 [INFO] [Task:4d12f771] [task] 任务已停止: assasd
+2026-01-21 14:54:07 [INFO] [scheduler] 调度器已停止
+2026-01-21 14:54:07 [INFO] [engine] 备份引擎已停止
+2026-01-21 14:54:07 [INFO] [system] 程序退出
+2026-01-21 14:54:07 [INFO] [system] 程序退出
+2026-01-21 14:54:21 [INFO] [system] 程序启动
+2026-01-21 14:54:21 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:54:22 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:54:22 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:54:22 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:54:22 [INFO] [Task:4d12f771] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:54:22 [INFO] [Task:4d12f771] [task] 任务已启动: assasd
+2026-01-21 14:54:22 [INFO] [Task:4d12f771] [task] 触发启动时全量同步: assasd
+2026-01-21 14:54:22 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:54:22 [INFO] [system] 程序启动完成
+2026-01-21 14:54:22 [INFO] [Task:4d12f771] [task] 开始全量同步: assasd
+2026-01-21 14:54:22 [INFO] [sync] 开始全量同步: 157 个文件 → 1 个目标
+2026-01-21 14:54:22 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:54:22 [INFO] [sync] 全量同步完成: 复制 2, 删除 0, 跳过 156, 失败 0
+2026-01-21 14:54:51 [INFO] [system] 程序启动
+2026-01-21 14:54:51 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:54:52 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:54:52 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:54:52 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:54:52 [INFO] [Task:4d12f771] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:54:52 [INFO] [Task:4d12f771] [task] 任务已启动: assasd
+2026-01-21 14:54:52 [INFO] [Task:4d12f771] [task] 触发启动时全量同步: assasd
+2026-01-21 14:54:52 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:54:52 [INFO] [system] 程序启动完成
+2026-01-21 14:54:53 [INFO] [Task:4d12f771] [task] 开始全量同步: assasd
+2026-01-21 14:54:53 [INFO] [sync] 开始全量同步: 157 个文件 → 1 个目标
+2026-01-21 14:54:53 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:54:53 [INFO] [sync] 全量同步完成: 复制 1, 删除 0, 跳过 157, 失败 0
+2026-01-21 14:57:03 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:57:03 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:57:03 [INFO] [Task:4d12f771] [task] 任务已停止: assasd
+2026-01-21 14:57:03 [INFO] [scheduler] 调度器已停止
+2026-01-21 14:57:03 [INFO] [engine] 备份引擎已停止
+2026-01-21 14:57:03 [INFO] [system] 程序退出
+2026-01-21 14:57:03 [INFO] [system] 程序退出
+2026-01-21 14:57:07 [INFO] [system] 程序启动
+2026-01-21 14:57:07 [INFO] [task] 加载了 1 个备份任务
+2026-01-21 14:57:08 [INFO] [scheduler] 调度器已启动
+2026-01-21 14:57:08 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:57:08 [INFO] [monitor] 开始监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:57:08 [INFO] [Task:4d12f771] [task] 双向同步：开始监控目标 C:/Users/Admin/Desktop/测试备份程序·/需备份 - 副本
+2026-01-21 14:57:08 [INFO] [Task:4d12f771] [task] 任务已启动: assasd
+2026-01-21 14:57:08 [INFO] [Task:4d12f771] [task] 触发启动时全量同步: assasd
+2026-01-21 14:57:08 [INFO] [engine] 备份引擎已启动
+2026-01-21 14:57:08 [INFO] [system] 程序启动完成
+2026-01-21 14:57:09 [INFO] [Task:4d12f771] [task] 开始全量同步: assasd
+2026-01-21 14:57:09 [INFO] [sync] 开始全量同步: 157 个文件 → 1 个目标
+2026-01-21 14:57:09 [INFO] [sync] 双向同步：开始反向扫描 C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:57:09 [INFO] [sync] 全量同步完成: 复制 0, 删除 0, 跳过 157, 失败 0
+2026-01-21 14:57:36 [INFO] [Task:4d12f771] [sync] [assasd] 文件删除: s需f本.txt
+2026-01-21 14:57:47 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份
+2026-01-21 14:57:47 [INFO] [monitor] 停止监控: C:\Users\Admin\Desktop\测试备份程序·\需备份 - 副本
+2026-01-21 14:57:47 [INFO] [Task:4d12f771] [task] 任务已停止: assasd
+2026-01-21 14:57:47 [INFO] [task] 删除任务: assasd
+2026-01-21 14:57:47 [INFO] [task] 删除任务: assasd
+2026-01-21 14:57:48 [INFO] [task] 启动所有任务
+2026-01-21 14:59:12 [INFO] [scheduler] 调度器已停止
+2026-01-21 14:59:12 [INFO] [engine] 备份引擎已停止
+2026-01-21 14:59:12 [INFO] [system] 程序退出
+2026-01-21 14:59:12 [INFO] [system] 程序退出
+2026-01-21 15:06:18 [INFO] [system] 程序启动
+2026-01-21 15:06:18 [INFO] [task] 加载了 0 个备份任务

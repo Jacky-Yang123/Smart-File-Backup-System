@@ -8,18 +8,15 @@ from dataclasses import dataclass, field
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
-from datetime import datetime
 from utils.constants import SyncMode, ConflictStrategy, FileEventType
 from utils.file_utils import (
     safe_copy_file, safe_delete_file, safe_move_file,
     get_relative_path, scan_directory, compare_files,
-    format_file_size, get_file_size, match_file_patterns,
-    get_file_hash
+    format_file_size, get_file_size, match_file_patterns
 )
 from utils.logger import logger
 from .conflict_handler import ConflictHandler
 from .file_monitor import FileEvent
-from .state_manager import state_manager, FileState
 
 
 @dataclass
@@ -64,8 +61,7 @@ class SyncProcessor:
                  include_patterns: List[str] = None,
                  exclude_patterns: List[str] = None,
                  max_workers: int = 4,
-                 task_id: str = "",
-                 compare_method: str = "mtime"):
+                 disable_delete: bool = False):
         """
         初始化同步处理器
         
@@ -77,8 +73,7 @@ class SyncProcessor:
             include_patterns: 包含文件模式
             exclude_patterns: 排除文件模式
             max_workers: 最大并发工作线程数
-            task_id: 任务ID (用于状态管理)
-            compare_method: 比较方式 (mtime, hash)
+            disable_delete: 禁止删除操作
         """
         self.source_path = os.path.abspath(source_path)
         self.target_paths = [os.path.abspath(p) for p in target_paths]
@@ -87,9 +82,7 @@ class SyncProcessor:
         self.include_patterns = include_patterns or []
         self.exclude_patterns = exclude_patterns or []
         self.max_workers = max_workers
-        self.task_id = task_id
-        self.compare_method = compare_method
-        self.state_manager = state_manager
+        self.disable_delete = disable_delete
         
         self._stats = SyncStats()
         self._stats_lock = Lock()
@@ -113,99 +106,6 @@ class SyncProcessor:
         """检查是否应该处理该文件"""
         return match_file_patterns(filepath, self.include_patterns, self.exclude_patterns)
     
-    def _update_state(self, rel_path, file_hash, file_path):
-        """更新文件状态"""
-        try:
-            state = FileState(
-                hash=file_hash,
-                mtime=os.path.getmtime(file_path),
-                size=os.path.getsize(file_path),
-                last_sync_time=datetime.now().isoformat()
-            )
-            self.state_manager.update_file_state(self.task_id, rel_path, state)
-        except Exception as e:
-            logger.warning(f"更新状态失败: {e}", task_id=self.task_id)
-
-    def _sync_file_with_hash(self, source_file: str, target_path: str) -> SyncResult:
-        """基于哈希的同步逻辑"""
-        try:
-            rel_path = get_relative_path(source_file, self.source_path)
-            target_file = os.path.join(target_path, rel_path)
-            
-            # 过滤
-            if not self._should_process_file(source_file):
-                return SyncResult(True, "skip", source_file, target_file, "文件被过滤规则排除")
-
-            # 计算哈希
-            src_hash = get_file_hash(source_file)
-            
-            # 获取上次状态
-            last_state = self.state_manager.get_file_state(self.task_id, rel_path)
-            last_hash = last_state.hash if last_state else None
-            
-            # 目标状态
-            target_exists = os.path.exists(target_file)
-            tgt_hash = get_file_hash(target_file) if target_exists else None
-            
-            # 变更检测
-            src_changed = (src_hash != last_hash)
-            tgt_changed = (not target_exists) or (tgt_hash != last_hash)
-            
-            # 1. 双方未变
-            if not src_changed and not tgt_changed:
-                return SyncResult(True, "skip", source_file, target_file, "文件已是最新")
-            
-            # 2. 源变更，目标未变 (或目标不存在) -> 更新目标
-            if src_changed and not tgt_changed:
-                success, error = safe_copy_file(source_file, target_file)
-                if success:
-                    self._update_state(rel_path, src_hash, source_file)
-                    return SyncResult(True, "copy", source_file, target_file, "源文件变更，更新目标", get_file_size(source_file))
-                return SyncResult(False, "error", source_file, target_file, f"复制失败: {error}")
-            
-            # 3. 源未变，目标变更
-            if not src_changed and tgt_changed:
-                if self.sync_mode == SyncMode.TWO_WAY:
-                    # 双向模式：跳过，留给反向同步处理 (目标 -> 源)
-                    return SyncResult(True, "skip", source_file, target_file, "目标变更，等待反向同步")
-                else:
-                    # 单向模式：强制还原目标 (Source Wins)
-                    success, error = safe_copy_file(source_file, target_file)
-                    if success:
-                        self._update_state(rel_path, src_hash, source_file)
-                        return SyncResult(True, "copy", source_file, target_file, "纠正目标变更，还原为源版本", get_file_size(source_file))
-                    return SyncResult(False, "error", source_file, target_file, f"还原失败: {error}")
-            
-            # 4. 双方变更 -> 冲突
-            if src_changed and tgt_changed:
-                if src_hash == tgt_hash:
-                    # 内容一致
-                    self._update_state(rel_path, src_hash, source_file)
-                    return SyncResult(True, "skip", source_file, target_file, "双方变更但内容一致")
-                
-                # 真正的冲突：保留双方
-                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                base, ext = os.path.splitext(target_file)
-                conflict_file = f"{base}.conflict.{timestamp}{ext}"
-                
-                try:
-                    # 尝试移动目标文件作为冲突备份
-                    # 注意：safe_move_file 如果跨盘可能耗时
-                    shutil.move(target_file, conflict_file)
-                except Exception as e:
-                    return SyncResult(False, "error", source_file, target_file, f"备份冲突文件失败: {e}")
-                
-                # 复制源文件到目标
-                success, error = safe_copy_file(source_file, target_file)
-                if success:
-                    self._update_state(rel_path, src_hash, source_file)
-                    return SyncResult(True, "copy", source_file, target_file, f"双方冲突，已备份旧版至 {os.path.basename(conflict_file)}", get_file_size(source_file))
-                else:
-                    return SyncResult(False, "error", source_file, target_file, f"解决冲突失败: {error}")
-                    
-        except Exception as e:
-            return SyncResult(False, "error", source_file, target_path, f"Hash同步异常: {e}")
-
     def _sync_file(self, source_file: str, target_path: str) -> SyncResult:
         """
         同步单个文件
@@ -217,10 +117,6 @@ class SyncProcessor:
         Returns:
             同步结果
         """
-        # 使用哈希同步
-        if self.compare_method == "hash" and self.task_id:
-            return self._sync_file_with_hash(source_file, target_path)
-
         try:
             rel_path = get_relative_path(source_file, self.source_path)
             target_file = os.path.join(target_path, rel_path)
@@ -335,6 +231,16 @@ class SyncProcessor:
         try:
             rel_path = get_relative_path(deleted_path, self.source_path)
             target_file = os.path.join(target_path, rel_path)
+            
+            # 如果禁止删除，跳过删除操作
+            if self.disable_delete:
+                return SyncResult(
+                    success=True,
+                    action="skip",
+                    source_path=deleted_path,
+                    target_path=target_file,
+                    message="删除操作已禁用，文件保留"
+                )
             
             if os.path.exists(target_file):
                 success, error = safe_delete_file(target_file)
@@ -531,41 +437,6 @@ class SyncProcessor:
         
         return results
     
-        return results
-    
-    def _sync_file_reverse_with_hash(self, target_file: str, target_base: str) -> SyncResult:
-        """反向哈希同步"""
-        try:
-            rel_path = get_relative_path(target_file, target_base)
-            source_file = os.path.join(self.source_path, rel_path)
-            
-            if not self._should_process_file(target_file):
-                return SyncResult(True, "skip", target_file, source_file, "文件被过滤规则排除")
-
-            tgt_hash = get_file_hash(target_file)
-            last_state = self.state_manager.get_file_state(self.task_id, rel_path)
-            last_hash = last_state.hash if last_state else None
-            
-            source_exists = os.path.exists(source_file)
-            src_hash = get_file_hash(source_file) if source_exists else None
-            
-            tgt_changed = (tgt_hash != last_hash)
-            src_changed = (not source_exists) or (src_hash != last_hash)
-            
-            # 如果源不存在，或者源没有变更，但目标变更了 -> 同步回去
-            if tgt_changed and not src_changed:
-                 success, error = safe_copy_file(target_file, source_file)
-                 if success:
-                     self._update_state(rel_path, tgt_hash, target_file)
-                     return SyncResult(True, "copy", target_file, source_file, "反向同步：目标变更，更新源", get_file_size(target_file))
-                 return SyncResult(False, "error", target_file, source_file, f"反向同步失败: {error}")
-            
-            # 其他情况（双方未变，源也变更，双方冲突等）在正向同步中已处理或无需处理
-            return SyncResult(True, "skip", target_file, source_file, "跳过（已在正向同步处理或无变更）")
-            
-        except Exception as e:
-            return SyncResult(False, "error", target_file, self.source_path, f"反向Hash同步异常: {e}")
-
     def _sync_file_reverse(self, target_file: str, target_base: str) -> SyncResult:
         """
         反向同步单个文件（目标 -> 源）
@@ -577,9 +448,6 @@ class SyncProcessor:
         Returns:
             同步结果
         """
-        if self.compare_method == "hash" and self.task_id:
-            return self._sync_file_reverse_with_hash(target_file, target_base)
-
         try:
             rel_path = get_relative_path(target_file, target_base)
             source_file = os.path.join(self.source_path, rel_path)
@@ -672,6 +540,16 @@ class SyncProcessor:
         try:
             rel_path = get_relative_path(deleted_path, target_base)
             source_file = os.path.join(self.source_path, rel_path)
+            
+            # 如果禁止删除，跳过删除操作
+            if self.disable_delete:
+                return SyncResult(
+                    success=True,
+                    action="skip",
+                    source_path=deleted_path,
+                    target_path=source_file,
+                    message="删除操作已禁用，源文件保留"
+                )
             
             if os.path.exists(source_file):
                 success, error = safe_delete_file(source_file)
@@ -892,10 +770,6 @@ class SyncProcessor:
                        f"跳过 {self._stats.skipped_files}, "
                        f"失败 {self._stats.failed_files}",
                        category="sync")
-            
-            # 如果是Hash模式，同步结束后保存状态
-            if self.compare_method == "hash" and self.state_manager:
-                self.state_manager.save_state()
             
         except Exception as e:
             logger.error(f"全量同步异常: {e}", category="sync")

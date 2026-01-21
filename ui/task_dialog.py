@@ -147,12 +147,6 @@ class TaskDialog(QDialog):
         self.conflict_combo.addItem("保留双方", ConflictStrategy.KEEP_BOTH.value)
         self.conflict_combo.addItem("跳过", ConflictStrategy.SKIP.value)
         form.addRow("冲突处理:", self.conflict_combo)
-
-        # 比较方式
-        self.compare_combo = QComboBox()
-        self.compare_combo.addItem("修改时间 (默认)", "mtime")
-        self.compare_combo.addItem("文件哈希 (更准确但较慢)", "hash")
-        form.addRow("比较方式:", self.compare_combo)
         
         layout.addLayout(form)
         
@@ -180,6 +174,12 @@ class TaskDialog(QDialog):
         self.reverse_delete_check.stateChanged.connect(
             lambda s: warning_label.setVisible(s == Qt.Checked)
         )
+        
+        # 禁止删除选项
+        self.disable_delete_check = QCheckBox("禁止删除操作 (安全模式)")
+        self.disable_delete_check.setToolTip("启用后，程序不会删除任何文件，即使源文件已被删除，目标文件也会保留")
+        self.disable_delete_check.setStyleSheet(f"color: {COLORS['success']};")
+        layout.addWidget(self.disable_delete_check)
         
         layout.addStretch()
         return widget
@@ -224,6 +224,35 @@ class TaskDialog(QDialog):
         self.exclude_temp_check.setChecked(True)
         layout.addWidget(self.exclude_temp_check)
         
+        # 常用开发文件夹排除
+        dev_folder_label = QLabel("常用开发文件夹排除:")
+        dev_folder_label.setStyleSheet(f"color: {COLORS['text_muted']}; font-size: 11px; margin-top: 6px;")
+        layout.addWidget(dev_folder_label)
+        
+        self.exclude_git_check = QCheckBox(".git (版本控制)")
+        self.exclude_git_check.setChecked(True)
+        layout.addWidget(self.exclude_git_check)
+        
+        self.exclude_node_modules_check = QCheckBox("node_modules (Node.js依赖)")
+        self.exclude_node_modules_check.setChecked(True)
+        layout.addWidget(self.exclude_node_modules_check)
+        
+        self.exclude_pycache_check = QCheckBox("__pycache__ (Python缓存)")
+        self.exclude_pycache_check.setChecked(True)
+        layout.addWidget(self.exclude_pycache_check)
+        
+        self.exclude_venv_check = QCheckBox("venv / .venv (Python虚拟环境)")
+        self.exclude_venv_check.setChecked(True)
+        layout.addWidget(self.exclude_venv_check)
+        
+        self.exclude_idea_check = QCheckBox(".idea / .vscode (IDE配置)")
+        self.exclude_idea_check.setChecked(False)
+        layout.addWidget(self.exclude_idea_check)
+        
+        self.exclude_build_check = QCheckBox("build / dist / target (构建产物)")
+        self.exclude_build_check.setChecked(False)
+        layout.addWidget(self.exclude_build_check)
+        
         layout.addStretch()
         return widget
     
@@ -264,12 +293,9 @@ class TaskDialog(QDialog):
         if idx >= 0:
             self.conflict_combo.setCurrentIndex(idx)
         
-        idx = self.compare_combo.findData(getattr(task, 'compare_method', 'mtime'))
-        if idx >= 0:
-            self.compare_combo.setCurrentIndex(idx)
-        
         self.delete_orphans_check.setChecked(task.delete_orphans)
         self.reverse_delete_check.setChecked(getattr(task, 'reverse_delete', False))
+        self.disable_delete_check.setChecked(getattr(task, 'disable_delete', False))
         
         # 更新UI状态
         self._on_sync_mode_changed(self.sync_mode_combo.currentIndex())
@@ -313,6 +339,18 @@ class TaskDialog(QDialog):
             excludes.extend([".*", "*/.*"])
         if self.exclude_temp_check.isChecked():
             excludes.extend(["*.tmp", "*.bak", "*.swp", "~*"])
+        if self.exclude_git_check.isChecked():
+            excludes.extend([".git", "*/.git"])
+        if self.exclude_node_modules_check.isChecked():
+            excludes.extend(["node_modules", "*/node_modules"])
+        if self.exclude_pycache_check.isChecked():
+            excludes.extend(["__pycache__", "*/__pycache__"])
+        if self.exclude_venv_check.isChecked():
+            excludes.extend(["venv", ".venv", "*/venv", "*/.venv"])
+        if self.exclude_idea_check.isChecked():
+            excludes.extend([".idea", ".vscode", "*/.idea", "*/.vscode"])
+        if self.exclude_build_check.isChecked():
+            excludes.extend(["build", "dist", "target", "*/build", "*/dist", "*/target"])
         
         includes = []
         if self.include_edit.text().strip():
@@ -325,11 +363,11 @@ class TaskDialog(QDialog):
             target_paths=targets,
             sync_mode=self.sync_mode_combo.currentData(),
             conflict_strategy=self.conflict_combo.currentData(),
-            compare_method=self.compare_combo.currentData(),
             include_patterns=includes,
             exclude_patterns=excludes,
             enabled=self.enabled_check.isChecked(),
             auto_start=self.auto_start_check.isChecked(),
             delete_orphans=self.delete_orphans_check.isChecked(),
-            reverse_delete=self.reverse_delete_check.isChecked()
+            reverse_delete=self.reverse_delete_check.isChecked(),
+            disable_delete=self.disable_delete_check.isChecked()
         )

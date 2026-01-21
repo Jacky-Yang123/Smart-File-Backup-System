@@ -110,11 +110,6 @@ class SettingsDialog(QDialog):
         self.default_conflict_combo.addItem("保留双方", ConflictStrategy.KEEP_BOTH.value)
         self.default_conflict_combo.addItem("跳过", ConflictStrategy.SKIP.value)
         group_layout.addRow("冲突策略:", self.default_conflict_combo)
-
-        self.default_compare_combo = QComboBox()
-        self.default_compare_combo.addItem("修改时间 (默认)", "mtime")
-        self.default_compare_combo.addItem("文件哈希 (更准确但较慢)", "hash")
-        group_layout.addRow("比较方式:", self.default_compare_combo)
         
         layout.addWidget(group)
         
@@ -188,11 +183,6 @@ class SettingsDialog(QDialog):
         if idx >= 0:
             self.default_conflict_combo.setCurrentIndex(idx)
         
-        compare = config_manager.get("backup.compare_method", "mtime")
-        idx = self.default_compare_combo.findData(compare)
-        if idx >= 0:
-            self.default_compare_combo.setCurrentIndex(idx)
-        
         debounce = config_manager.get("monitor.debounce_seconds", 1.0)
         self.debounce_spin.setValue(int(debounce * 1000))
         self.ignore_hidden_check.setChecked(config_manager.get("monitor.ignore_hidden", True))
@@ -217,7 +207,6 @@ class SettingsDialog(QDialog):
         # 备份
         config_manager.set("backup.default_sync_mode", self.default_mode_combo.currentData())
         config_manager.set("backup.default_conflict_strategy", self.default_conflict_combo.currentData())
-        config_manager.set("backup.compare_method", self.default_compare_combo.currentData())
         
         # 监控
         config_manager.set("monitor.debounce_seconds", self.debounce_spin.value() / 1000.0)

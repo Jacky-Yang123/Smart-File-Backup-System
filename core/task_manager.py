@@ -30,10 +30,10 @@ class BackupTask:
     auto_start: bool = False
     delete_orphans: bool = False
     reverse_delete: bool = False  # 单向备份：目标删除时是否同步删除源文件
+    disable_delete: bool = False  # 禁止删除操作：防止任何文件被删除
     created_at: str = ""
     updated_at: str = ""
     last_run_time: str = ""
-    compare_method: str = "mtime"  # 比较方式: mtime, hash
     
     def __post_init__(self):
         if not self.id:
@@ -219,8 +219,7 @@ class TaskRunner:
                     conflict_strategy=ConflictStrategy(self.task.conflict_strategy),
                     include_patterns=self.task.include_patterns,
                     exclude_patterns=self.task.exclude_patterns,
-                    task_id=self.task.id,
-                    compare_method=self.task.compare_method
+                    disable_delete=self.task.disable_delete
                 )
                 
                 # 创建源文件夹监控器
@@ -323,8 +322,7 @@ class TaskRunner:
                         conflict_strategy=ConflictStrategy(self.task.conflict_strategy),
                         include_patterns=self.task.include_patterns,
                         exclude_patterns=self.task.exclude_patterns,
-                        task_id=self.task.id,
-                        compare_method=self.task.compare_method
+                        disable_delete=self.task.disable_delete
                     )
                 
                 logger.info(f"开始全量同步: {self.task.name}", task_id=self.task.id, category="task")
