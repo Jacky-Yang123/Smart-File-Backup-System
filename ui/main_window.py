@@ -25,12 +25,12 @@ from .styles import GLOBAL_STYLE, SIDEBAR_STYLE, TASK_CARD_STYLE, STATUSBAR_STYL
 from .task_dialog import TaskDialog
 from .monitor_panel import MonitorPanel
 from .log_viewer import LogViewer
-from .settings_dialog import SettingsDialog
+from .settings_panel import SettingsPanel
 from .system_tray import SystemTray
-from .file_change_viewer import FileChangeViewer
 from .file_change_viewer import FileChangeViewer
 from .crash_log_viewer import CrashLogViewer
 from .alert_panel import AlertPanel
+from .queue_status_panel import QueueStatusPanel
 
 
 class TaskCard(QFrame):
@@ -204,7 +204,7 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
         
-        # 侧边栏
+        # 2. 侧边栏
         sidebar = self._create_sidebar()
         main_layout.addWidget(sidebar)
         
@@ -214,28 +214,38 @@ class MainWindow(QMainWindow):
         separator.setStyleSheet(f"background-color: {COLORS['border']};")
         main_layout.addWidget(separator)
         
-        # 内容区
+        # 3. 内容堆栈 (QStackedWidget)
         self.content_stack = QStackedWidget()
         main_layout.addWidget(self.content_stack, 1)
         
+        # --- 按顺序初始化并记录组件 ---
+        # 0: 任务主页
         self.task_page = self._create_task_page()
         self.content_stack.addWidget(self.task_page)
         
+        # 1: 监控面板
         self.monitor_panel = MonitorPanel()
         self.content_stack.addWidget(self.monitor_panel)
         
+        # 2: 日志查看器
         self.log_viewer = LogViewer()
         self.content_stack.addWidget(self.log_viewer)
         
+        # 3: 文件变更查看
         self.file_change_viewer = FileChangeViewer()
         self.content_stack.addWidget(self.file_change_viewer)
         
-        self.content_stack.addWidget(self.file_change_viewer)
-        
+        # 4: 警告面板
         self.alert_panel = AlertPanel()
         self.content_stack.addWidget(self.alert_panel)
         
-        self.content_stack.addWidget(QWidget())  # 设置占位
+        # 5: 队列状态
+        self.queue_status_panel = QueueStatusPanel()
+        self.content_stack.addWidget(self.queue_status_panel)
+        
+        # 6: 设置面板
+        self.settings_panel = SettingsPanel()
+        self.content_stack.addWidget(self.settings_panel)
         
         self._create_status_bar()
     
@@ -258,7 +268,15 @@ class MainWindow(QMainWindow):
         
         # 导航按钮
         self.nav_buttons = []
-        nav_items = [("📋 任务", 0), ("📊 监控", 1), ("📝 日志", 2), ("📁 变更", 3), ("⚠️ 提醒", 4), ("⚙️ 设置", 5)]
+        nav_items = [
+            ("📋 任务", 0), 
+            ("📊 监控", 1), 
+            ("📝 日志", 2), 
+            ("📁 变更", 3), 
+            ("⚠️ 提醒", 4), 
+            ("⚡ 队列", 5), 
+            ("⚙️ 设置", 6)
+        ]
         
         for text, index in nav_items:
             btn = QPushButton(text)
@@ -398,12 +416,19 @@ class MainWindow(QMainWindow):
         self.update_timer.timeout.connect(self._update_status)
         self.update_timer.start(2000)
     
+    def _show_settings(self):
+        """切换到设置页面"""
+        self.content_stack.setCurrentWidget(self.settings_panel)
+        self.status_label.setText("系统设置")
+        
     def _switch_page(self, index: int):
+        """主导航切换逻辑"""
         for i, btn in enumerate(self.nav_buttons):
             btn.setChecked(i == index)
-        if index == 5:  # 设置页现在是索引 5
+            
+        if index == 6:
             self._show_settings()
-        else:
+        elif 0 <= index < self.content_stack.count():
             self.content_stack.setCurrentIndex(index)
     
     def _minimize_to_tray(self):
@@ -565,12 +590,9 @@ class MainWindow(QMainWindow):
         self._update_status()
         logger.info("停止所有任务", category="task")
     
-    def _show_settings(self):
-        dialog = SettingsDialog(self)
-        dialog.exec_()
-        self.nav_buttons[4].setChecked(False)
-        self.nav_buttons[self.content_stack.currentIndex()].setChecked(True)
-        self.tray.update_notification_settings()
+    def _show_log_entry(self, entry: dict):
+        # 这是一个占位，防止冲突
+        pass
     
     def _on_log_entry(self, entry: dict):
         """日志回调 - 可能从后台线程调用"""
@@ -604,34 +626,65 @@ class MainWindow(QMainWindow):
             if result.get("action") == "safety_alert":
                 accumulated = result.get("accumulated_count", 0)
                 batch_data = result.get("batch_data", [])
-                
-                def confirm_batch_callback(filtered_data=None):
-                    if filtered_data is not None:
-                        # 执行选中的操作
-                        task_manager.execute_batch(task_id, filtered_data)
-                        # 重置暂停状态（清除剩余未执行的）
-                        task_manager.reset_safety_pause(task_id)
-                        count = len(filtered_data)
-                        msg = f"{task_name}: 执行了 {count} 个选中的操作"
-                    else:
-                        # 如果没有过滤数据（旧逻辑兼容，虽然现在 UI 都会传空列表），执行全部
-                        task_manager.confirm_safety_alert(task_id)
-                        msg = f"{task_name}: 安全处理确认"
-                        
-                    # 清除活跃提醒记录
-                    if task_id in self._active_task_alerts:
-                        del self._active_task_alerts[task_id]
-                    self.tray.show_notification("执行批量更改", msg, "info")
+                is_initial_sync = result.get("is_initial_sync", False)
                 
                 # 构造符合 _add_safety_alert 期望的 safety_info
+                # 注意: is_initial_sync 必须存储在 safety_info 中，以便回调时正确获取
                 safety_info = {
                     "message": result.get("message", "检测到大量变更"),
                     "warning_type": result.get("alert_type", "massive_change"),
-                    "task_id": task_id, # 传递 task_id 用于追踪
-                    "batch_data": batch_data # 传递数据供选择
+                    "task_id": task_id,
+                    "batch_data": batch_data,
+                    "is_initial_sync": is_initial_sync  # 存入 safety_info 供回调使用
                 }
                 
-                self._add_safety_alert(task, safety_info, confirm_batch_callback)
+                # 使用工厂函数创建回调，正确捕获当前值
+                def make_callback(tid, tname, tsk, is_init):
+                    def confirm_batch_callback(filtered_data=None):
+                        logger.info(f"执行回调: task_id={tid}, is_initial_sync={is_init}", category="sync")
+                        if is_init:
+                            # 初始同步：执行全量同步而不是批量操作
+                            delete_rule = getattr(tsk, 'initial_sync_delete', False)
+                            logger.info(f"执行初始全量同步 (删除策略={delete_rule})", task_id=tid, category="sync")
+                            
+                            # 在新线程执行以避免阻塞UI
+                            import threading
+                            def do_sync():
+                                task_manager.run_full_sync(tid, delete_orphans_override=delete_rule)
+                            threading.Thread(target=do_sync, daemon=True).start()
+                            
+                            msg = f"{tname}: 初始全量同步已确认执行"
+                        elif filtered_data is not None and len(filtered_data) > 0:
+                            # 执行选中的操作
+                            task_manager.execute_batch(tid, filtered_data)
+                            task_manager.reset_safety_pause(tid)
+                            count = len(filtered_data)
+                            msg = f"{tname}: 执行了 {count} 个选中的操作"
+                        elif filtered_data is not None and len(filtered_data) == 0:
+                            # 用户没有选择任何项目
+                            task_manager.reset_safety_pause(tid)
+                            msg = f"{tname}: 未选择任何操作"
+                        else:
+                            # 旧逻辑兼容
+                            task_manager.confirm_safety_alert(tid)
+                            msg = f"{tname}: 安全处理确认"
+                            
+                        # 清除活跃提醒记录
+                        if tid in self._active_task_alerts:
+                            del self._active_task_alerts[tid]
+                        self.tray.show_notification("执行批量更改", msg, "info")
+                    return confirm_batch_callback
+                
+                callback = make_callback(task_id, task_name, task, is_initial_sync)
+                self._add_safety_alert(task, safety_info, callback)
+                return
+            
+            # 处理进度更新事件
+            if result.get("action") == "progress":
+                current = result.get("progress_current", 0)
+                total = result.get("progress_total", 0)
+                remaining = result.get("progress_remaining", 0)
+                self.monitor_panel.update_progress(current, total, remaining)
                 return
             
             task_name = task.name if task else "未知"

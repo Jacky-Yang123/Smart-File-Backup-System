@@ -18,22 +18,8 @@ from watchdog.events import (
     DirMovedEvent
 )
 
-from utils.constants import FileEventType
+from utils.constants import FileEventType, FileEvent
 from utils.logger import logger
-
-
-@dataclass
-class FileEvent:
-    """文件事件数据类"""
-    event_type: FileEventType
-    src_path: str
-    dst_path: Optional[str] = None
-    is_directory: bool = False
-    timestamp: float = None
-    
-    def __post_init__(self):
-        if self.timestamp is None:
-            self.timestamp = time.time()
 
 
 class DebouncedEventHandler(FileSystemEventHandler):

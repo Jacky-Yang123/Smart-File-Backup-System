@@ -34,6 +34,12 @@ class AlertCard(QFrame):
         """)
         
         self.batch_data = batch_data or []
+        self.list_widget = None
+        self.details_container = None
+        self.toggle_details_btn = None
+        self.select_all_btn = None
+        self.deselect_all_btn = None
+        
         self._init_ui(title, task_name, message, timestamp)
         
     def _init_ui(self, title: str, task_name: str, message: str, timestamp: datetime):
@@ -67,44 +73,48 @@ class AlertCard(QFrame):
         self.msg_label.setStyleSheet(f"color: {COLORS['text_secondary']}; margin: 4px 0;")
         layout.addWidget(self.msg_label)
         
-        # 详细列表区域 (默认隐藏)
+        # 详细列表区域
+        self.details_container = QWidget()
+        details_layout = QVBoxLayout(self.details_container)
+        details_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # 操作栏
+        action_bar = QHBoxLayout()
+        self.select_all_btn = QPushButton("全选")
+        self.select_all_btn.setFixedSize(60, 24)
+        self.select_all_btn.clicked.connect(self._select_all)
+        
+        self.deselect_all_btn = QPushButton("全不选")
+        self.deselect_all_btn.setFixedSize(60, 24)
+        self.deselect_all_btn.clicked.connect(self._deselect_all)
+        
+        action_bar.addWidget(self.select_all_btn)
+        action_bar.addWidget(self.deselect_all_btn)
+        action_bar.addStretch()
+        details_layout.addLayout(action_bar)
+        
+        # 列表
+        self.list_widget = QListWidget()
+        self.list_widget.setSelectionMode(QListWidget.NoSelection) # 通过 checkbox 选择
+        self.list_widget.setFixedHeight(200)
+        details_layout.addWidget(self.list_widget)
+        
+        self.details_container.setVisible(False)
+        layout.addWidget(self.details_container)
+        
+        # 展开/收起按钮
+        self.toggle_details_btn = QPushButton("查看详情/选择操作 (0)")
+        self.toggle_details_btn.setStyleSheet(f"color: {COLORS['accent']}; text-align: left; border: none; background: transparent;")
+        self.toggle_details_btn.setCursor(Qt.PointingHandCursor)
+        self.toggle_details_btn.clicked.connect(self._toggle_details)
+        layout.addWidget(self.toggle_details_btn)
+        
         if self.batch_data:
-            self.details_container = QWidget()
-            details_layout = QVBoxLayout(self.details_container)
-            details_layout.setContentsMargins(0, 0, 0, 0)
-            
-            # 操作栏
-            action_bar = QHBoxLayout()
-            self.select_all_btn = QPushButton("全选")
-            self.select_all_btn.setFixedSize(60, 24)
-            self.select_all_btn.clicked.connect(self._select_all)
-            
-            self.deselect_all_btn = QPushButton("全不选")
-            self.deselect_all_btn.setFixedSize(60, 24)
-            self.deselect_all_btn.clicked.connect(self._deselect_all)
-            
-            action_bar.addWidget(self.select_all_btn)
-            action_bar.addWidget(self.deselect_all_btn)
-            action_bar.addStretch()
-            details_layout.addLayout(action_bar)
-            
-            # 列表
-            self.list_widget = QListWidget()
-            self.list_widget.setSelectionMode(QListWidget.NoSelection) # 通过 checkbox 选择
-            self.list_widget.setFixedHeight(200)
             self._populate_list()
-            details_layout.addWidget(self.list_widget)
-            
-            self.details_container.setVisible(False)
-            layout.addWidget(self.details_container)
-            
-            # 展开/收起按钮
-            self.toggle_details_btn = QPushButton("查看详情/选择操作 (0)")
-            self.toggle_details_btn.setStyleSheet(f"color: {COLORS['accent']}; text-align: left; border: none; background: transparent;")
-            self.toggle_details_btn.setCursor(Qt.PointingHandCursor)
-            self.toggle_details_btn.clicked.connect(self._toggle_details)
-            layout.addWidget(self.toggle_details_btn)
             self._update_toggle_text()
+            self.toggle_details_btn.setVisible(True)
+        else:
+            self.toggle_details_btn.setVisible(False)
         
         
         # 按钮栏
@@ -183,9 +193,15 @@ class AlertCard(QFrame):
             
         self.handled.emit(self.alert_id, True, selected_data)
         
+
     def update_data(self, message: str, new_batch_data: list):
         """更新数据"""
         self.msg_label.setText(message)
+        
+        # 确保UI可见
+        self.toggle_details_btn.setVisible(True)
+        # 如果当前是隐藏的，可能需要展开或者保持？
+        # 这里默认保持当前状态，但确保按钮有文字
         
         # 将新数据追加到列表
         current_count = len(self.batch_data)

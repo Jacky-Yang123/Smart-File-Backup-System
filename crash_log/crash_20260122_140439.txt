@@ -1,0 +1,16 @@
+=== 程序崩溃日志 ===
+时间: 2026-01-22T14:04:39.977266
+异常类型: NameError
+异常信息: name 'SettingsDialog' is not defined
+
+=== 完整堆栈 ===
+Traceback (most recent call last):
+  File "C:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\ui\main_window.py", line 300, in <lambda>
+    btn.clicked.connect(lambda checked, i=index: self._switch_page(i))
+                                                 ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\ui\main_window.py", line 430, in _switch_page
+    self._show_settings()
+  File "C:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\ui\main_window.py", line 598, in _show_settings
+    dialog = SettingsDialog(self)
+             ^^^^^^^^^^^^^^
+NameError: name 'SettingsDialog' is not defined. Did you mean: 'SettingsPanel'?

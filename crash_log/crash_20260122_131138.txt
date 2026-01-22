@@ -1,0 +1,19 @@
+=== 程序崩溃日志 ===
+时间: 2026-01-22T13:11:38.817572
+异常类型: SyntaxError
+异常信息: keyword argument repeated: conflict_strategy (task_manager.py, line 711)
+
+=== 完整堆栈 ===
+Traceback (most recent call last):
+  File "D:\python312\Lib\idlelib\run.py", line 583, in runcode
+    exec(code, self.locals)
+  File "C:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\main.py", line 98, in <module>
+    main()
+  File "C:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\main.py", line 84, in main
+    from ui.main_window import MainWindow
+  File "C:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\ui\main_window.py", line 20, in <module>
+    from core.task_manager import task_manager, BackupTask
+  File "C:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\core\task_manager.py", line 711
+    conflict_strategy=ConflictStrategy(self.task.conflict_strategy),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: keyword argument repeated: conflict_strategy

@@ -22,7 +22,7 @@ class TaskDialog(QDialog):
         super().__init__(parent)
         self.task = task
         self.setWindowTitle("编辑任务" if task else "新建任务")
-        self.setFixedSize(550, 500)
+        self.setFixedSize(600, 650)  # 增大对话框尺寸解决文字显示问题
         self.setModal(True)
         self.setStyleSheet(f"background-color: {COLORS['bg_dark']};")
         

@@ -98,6 +98,9 @@ class MonitorPanel(QWidget):
         self.synced_card = StatCard("已同步文件", "0", COLORS["info"])
         stats_layout.addWidget(self.synced_card)
         
+        self.progress_card = StatCard("待处理/剩余", "0", COLORS["warning"])
+        stats_layout.addWidget(self.progress_card)
+        
         self.error_card = StatCard("错误数量", "0", COLORS["error"])
         stats_layout.addWidget(self.error_card)
         
@@ -226,6 +229,11 @@ class MonitorPanel(QWidget):
         
         self.synced_card.set_value(str(total_synced))
         self.error_card.set_value(str(total_errors), COLORS["error"] if total_errors > 0 else COLORS["text_muted"])
+    
+    def update_progress(self, current: int, total: int, remaining: int):
+        """更新进度显示"""
+        if total > 0:
+            self.progress_card.set_value(f"{remaining}", COLORS["warning"] if remaining > 0 else COLORS["success"])
     
     def _update_task_table(self):
         tasks = task_manager.get_all_tasks()

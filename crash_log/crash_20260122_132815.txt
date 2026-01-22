@@ -1,0 +1,11 @@
+=== 程序崩溃日志 ===
+时间: 2026-01-22T13:28:15.648251
+异常类型: AttributeError
+异常信息: 'AlertCard' object has no attribute 'list_widget'
+
+=== 完整堆栈 ===
+Traceback (most recent call last):
+  File "C:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\ui\alert_panel.py", line 172, in _on_continue
+    for i in range(self.list_widget.count()):
+                   ^^^^^^^^^^^^^^^^
+AttributeError: 'AlertCard' object has no attribute 'list_widget'

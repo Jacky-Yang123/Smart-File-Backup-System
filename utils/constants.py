@@ -4,6 +4,8 @@
 import os
 import sys
 from enum import Enum
+from dataclasses import dataclass
+from typing import Optional, List
 
 # 应用信息
 APP_NAME = "智能文件备份系统"
@@ -61,6 +63,21 @@ class FileEventType(Enum):
     MODIFIED = "modified"
     DELETED = "deleted"
     MOVED = "moved"
+
+
+@dataclass
+class FileEvent:
+    """文件事件数据类"""
+    event_type: FileEventType
+    src_path: str
+    dst_path: Optional[str] = None
+    is_directory: bool = False
+    timestamp: float = None
+    
+    def __post_init__(self):
+        if self.timestamp is None:
+            import time
+            self.timestamp = time.time()
 
 
 class LogLevel(Enum):

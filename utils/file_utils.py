@@ -220,6 +220,9 @@ def match_file_patterns(filepath: str, include_patterns: List[str], exclude_patt
     """
     import fnmatch
     
+    include_patterns = include_patterns or []
+    exclude_patterns = exclude_patterns or []
+    
     filename = os.path.basename(filepath)
     
     # 检查排除模式
@@ -266,28 +269,84 @@ def generate_versioned_filename(filepath: str, version: int = None) -> str:
     return os.path.join(directory, f"{name}_v{version}{ext}")
 
 
-def scan_directory(directory: str, recursive: bool = True) -> List[str]:
+def scan_directory(directory: str, recursive: bool = True, 
+                   include_patterns: List[str] = None, 
+                   exclude_patterns: List[str] = None) -> List[str]:
     """
     扫描目录获取所有文件
     
     Args:
         directory: 目录路径
         recursive: 是否递归扫描
+        include_patterns: 包含模式
+        exclude_patterns: 排除模式
     
     Returns:
         文件路径列表
     """
+    include_patterns = include_patterns or []
+    exclude_patterns = exclude_patterns or []
+    
     files = []
     try:
+        # 确保目录存在
+        if not os.path.exists(directory):
+            return files
+
         if recursive:
+            import fnmatch
             for root, dirs, filenames in os.walk(directory):
+                # 过滤目录
+                if exclude_patterns:
+                    # 原地修改 dirs 列表以修剪遍历树
+                    dirs_to_keep = []
+                    for d in dirs:
+                        # 检查目录名是否匹配排除模式
+                        # 注意：需要同时检查目录名和完整路径，就像 match_file_patterns 对文件所做的那样
+                        should_exclude = False
+                        d_path = os.path.join(root, d)
+                        for pattern in exclude_patterns:
+                            if fnmatch.fnmatch(d, pattern) or fnmatch.fnmatch(d_path, pattern):
+                                should_exclude = True
+                                break
+                        
+                        if not should_exclude:
+                            dirs_to_keep.append(d)
+                    dirs[:] = dirs_to_keep
+                
                 for filename in filenames:
-                    files.append(os.path.join(root, filename))
+                    filepath = os.path.join(root, filename)
+                    if match_file_patterns(filepath, include_patterns, exclude_patterns):
+                        files.append(filepath)
         else:
             for item in os.listdir(directory):
                 item_path = os.path.join(directory, item)
                 if os.path.isfile(item_path):
-                    files.append(item_path)
+                    if match_file_patterns(item_path, include_patterns, exclude_patterns):
+                        files.append(item_path)
+    except Exception as e:
+        from utils.logger import logger
+        logger.error(f"扫描目录失败 {directory}: {e}", category="file")
+    return files
+
+
+def scan_all_directories(directory: str) -> List[str]:
+    """
+    Issue 6 Fix: 扫描目录获取所有子目录 (包括空目录)
+    
+    Args:
+        directory: 根目录路径
+    
+    Returns:
+        所有子目录路径列表 (相对于根目录)
+    """
+    directories = []
+    try:
+        for root, dirs, _ in os.walk(directory):
+            for d in dirs:
+                dir_path = os.path.join(root, d)
+                directories.append(dir_path)
     except Exception:
         pass
-    return files
+    return directories
+

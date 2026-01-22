@@ -17,6 +17,7 @@ from utils.file_utils import (
 from utils.logger import logger
 from .conflict_handler import ConflictHandler
 from .file_monitor import FileEvent
+from .scanner import Scanner
 
 
 @dataclass
@@ -49,6 +50,15 @@ class SyncStats:
         self.total_size = 0
 
 
+@dataclass
+class PlanResult:
+    """计划结果"""
+    op_type: str  # copy, delete
+    source_path: str
+    target_path: str
+    message: str = ""
+
+
 class SyncProcessor:
     """
     同步处理器
@@ -64,16 +74,6 @@ class SyncProcessor:
                  disable_delete: bool = False):
         """
         初始化同步处理器
-        
-        Args:
-            source_path: 源文件夹路径
-            target_paths: 目标文件夹路径列表
-            sync_mode: 同步模式
-            conflict_strategy: 冲突处理策略
-            include_patterns: 包含文件模式
-            exclude_patterns: 排除文件模式
-            max_workers: 最大并发工作线程数
-            disable_delete: 禁止删除操作
         """
         self.source_path = os.path.abspath(source_path)
         self.target_paths = [os.path.abspath(p) for p in target_paths]
@@ -89,7 +89,119 @@ class SyncProcessor:
         self._progress_callback: Optional[Callable[[int, int, str], None]] = None
         self._is_running = False
         self._should_stop = False
-    
+        
+    def execute_op(self, op_type: str, source: str, target: str) -> Tuple[bool, str]:
+        """执行单个操作 (供 OperationQueue 调用)"""
+        try:
+            if op_type == "copy":
+                # 检查是文件还是目录
+                if os.path.isfile(source):
+                     # 文件复制 - 严格走文件同步逻辑
+                     result = self._sync_file(source, target, False)
+                     return result.success, result.message
+                
+                elif os.path.isdir(source):
+                     # 目录创建 - 仅当源确实是目录时
+                     if not os.path.exists(target):
+                         os.makedirs(target, exist_ok=True)
+                     return True, "Directory created"
+                
+                else:
+                    return False, f"Source not found: {source}"
+                
+            elif op_type == "delete":
+                result = self._sync_deletion(source, target) # target here might be base path?
+                # 注意: _sync_deletion 的参数是 (deleted_path, target_base)
+                # 但 plan_result 里 target 可能为空?
+                # 如果 plan 是 delete source, target 是 ""?
+                
+                # 修正: _sync_deletion 需要 target_base 来计算相对路径
+                # 这里假设 op.target_path 是 target_base (如果是孤儿删除)
+                # 或者直接删除 source?
+                
+                # 如果是 "删除孤儿文件"，source 是 目标文件路径。
+                # 所以直接删除 source 即可。
+                # SyncProcessor._sync_deletion 是处理 "源删除了，目标也要删"
+                # safe_delete_file(source) 即可?
+                
+                # 重新审视 scan_and_plan 的 delete
+                # op_type="delete", source=dst_path (要删除的文件), target=""
+                
+                success, error = safe_delete_file(source)
+                return success, error
+            
+            else:
+                return False, f"Unknown op: {op_type}"
+                
+        except Exception as e:
+            return False, str(e)
+
+    def scan_and_plan(self, delete_orphans: bool = False) -> List[dict]:
+        """
+        扫描并生成同步计划 (不执行操作)
+        
+        Returns:
+            List[dict]: 操作列表 [{"op_type": "copy"|"delete", "source": "...", "target": "..."}]
+        """
+        plans = []
+        
+        # 扫描源目录 (返回绝对路径列表)
+        source_scanner = Scanner(self.source_path, self.include_patterns, self.exclude_patterns)
+        source_list = source_scanner.scan()
+        
+        # 转换为相对路径 -> 绝对路径的字典
+        source_files = {get_relative_path(p, self.source_path): p for p in source_list}
+        logger.debug(f"[Scan] Source: {len(source_list)} files in {self.source_path}", category="sync")
+        
+        # 处理每个目标目录
+        for target_base in self.target_paths:
+            # 1. 扫描目标目录
+            target_scanner = Scanner(target_base, self.include_patterns, self.exclude_patterns)
+            target_list = target_scanner.scan()
+            target_files = {get_relative_path(p, target_base): p for p in target_list}
+            logger.debug(f"[Scan] Target: {len(target_list)} files in {target_base}", category="sync")
+            
+            # 2. 处理需要复制/更新的文件 (源 -> 目标)
+            changes_count = 0
+            for rel_path, src_path in source_files.items():
+                dst_path = os.path.join(target_base, rel_path)
+                
+                # 检查是否需要更新
+                if not os.path.exists(dst_path):
+                     plans.append({
+                        "op_type": "copy",
+                        "source": src_path,
+                        "target": dst_path,
+                        "message": "文件新增"
+                    })
+                     changes_count += 1
+                elif not compare_files(src_path, dst_path):
+                    plans.append({
+                        "op_type": "copy",
+                        "source": src_path,
+                        "target": dst_path,
+                        "message": "文件更新"
+                    })
+                    changes_count += 1
+            
+            logger.debug(f"[Scan] Found {changes_count} changes for target {target_base}", category="sync")
+            
+            # 3. 处理需要删除的文件 (目标 -> 孤儿)
+            if delete_orphans and not self.disable_delete:
+                del_count = 0
+                for rel_path, dst_path in target_files.items():
+                    if rel_path not in source_files:
+                        plans.append({
+                            "op_type": "delete",
+                            "source": dst_path,
+                            "target": "",
+                            "message": "删除孤儿文件"
+                        })
+                        del_count += 1
+                logger.debug(f"[Scan] Found {del_count} deletions for target {target_base}", category="sync")
+        
+        return plans
+
     def set_progress_callback(self, callback: Callable[[int, int, str], None]):
         """设置进度回调 (current, total, message)"""
         self._progress_callback = callback
@@ -119,8 +231,17 @@ class SyncProcessor:
             同步结果
         """
         try:
+            # 修正路径逻辑: 如果 target_path 实际上是完整的目标文件路径
             rel_path = get_relative_path(source_file, self.source_path)
-            target_file = os.path.join(target_path, rel_path)
+            
+            # 使用 normpath 比较来避免路径分隔符差异
+            norm_target = os.path.normpath(target_path)
+            norm_rel = os.path.normpath(rel_path)
+            
+            if norm_target.endswith(norm_rel):
+                 target_file = target_path
+            else:
+                 target_file = os.path.join(target_path, rel_path)
             
             # 检查过滤规则
             if not self._should_process_file(source_file):
@@ -726,7 +847,8 @@ class SyncProcessor:
         
         try:
             # 扫描源文件夹
-            source_files = scan_directory(self.source_path)
+            source_scanner = Scanner(self.source_path, self.include_patterns, self.exclude_patterns)
+            source_files = source_scanner.scan()
             total = len(source_files) * len(self.target_paths)
             current = 0
             
@@ -761,7 +883,8 @@ class SyncProcessor:
                 
                 # 删除目标中多余的文件 (仅单向同步且配置了删除)
                 if delete_orphans and self.sync_mode == SyncMode.ONE_WAY and not self._should_stop:
-                    target_files = scan_directory(target_path)
+                    target_scanner = Scanner(target_path, self.include_patterns, self.exclude_patterns)
+                    target_files = target_scanner.scan()
                     source_rel_paths = set(get_relative_path(f, self.source_path) for f in source_files)
                     
                     for target_file in target_files:
@@ -788,7 +911,8 @@ class SyncProcessor:
                 # 双向同步：反向同步 (目标 -> 源)
                 if self.sync_mode == SyncMode.TWO_WAY and not self._should_stop:
                     logger.info(f"双向同步：开始反向扫描 {target_path}", category="sync")
-                    target_files = scan_directory(target_path)
+                    target_scanner = Scanner(target_path, self.include_patterns, self.exclude_patterns)
+                    target_files = target_scanner.scan()
                     total_reverse = len(target_files)
                     current_reverse = 0
                     

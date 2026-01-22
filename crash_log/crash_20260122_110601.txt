@@ -1,0 +1,19 @@
+=== 程序崩溃日志 ===
+时间: 2026-01-22T11:06:01.917996
+异常类型: NameError
+异常信息: name 'Tuple' is not defined
+
+=== 完整堆栈 ===
+Traceback (most recent call last):
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\main.py", line 98, in <module>
+    main()
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\main.py", line 84, in main
+    from ui.main_window import MainWindow
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\ui\main_window.py", line 20, in <module>
+    from core.task_manager import task_manager, BackupTask
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\core\task_manager.py", line 756, in <module>
+    class TaskManager:
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\core\task_manager.py", line 788, in TaskManager
+    def _execute_queue_operation(self, op) -> Tuple[bool, str]:
+                                              ^^^^^
+NameError: name 'Tuple' is not defined. Did you mean: 'tuple'?

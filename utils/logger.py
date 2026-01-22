@@ -75,6 +75,11 @@ class Logger:
         self._log_queue = queue.Queue()
         self._is_running = True
         
+        # Issue 3 Fix: 内存日志缓存 (解决数据库读取失败时日志空白问题)
+        self._log_cache: List[dict] = []
+        self._LOG_CACHE_MAX_SIZE = 500
+        self._cache_lock = threading.Lock()
+        
         # 初始化数据库和日志
         # 注意: config_manager可能尚未完全加载，先使用默认路径
         try:
@@ -216,6 +221,13 @@ class Logger:
             }
             self._log_queue.put({"type": "log", "data": log_data})
             
+            # Issue 3 Fix: 同时添加到内存缓存
+            with self._cache_lock:
+                self._log_cache.append(log_data)
+                # 保持缓存大小不超过限制
+                if len(self._log_cache) > self._LOG_CACHE_MAX_SIZE:
+                    self._log_cache = self._log_cache[-self._LOG_CACHE_MAX_SIZE:]
+            
             # 2. 立即写入文件 (文件系统通常比数据库快且并发更好)
             log_msg = f"[{category}] {message}"
             if task_id:
@@ -287,7 +299,7 @@ class Logger:
     def get_logs(self, level: str = None, category: str = None,
                   task_id: str = None, start_time: datetime = None,
                   end_time: datetime = None, limit: int = 100) -> List[dict]:
-        """查询日志 (直接读库，可能需要重试)"""
+        """查询日志 (直接读库，失败时使用内存缓存)"""
         try:
             query = LogEntry.select().order_by(LogEntry.timestamp.desc())
             
@@ -316,9 +328,24 @@ class Logger:
                 }
                 for entry in query
             ]
-        except Exception:
-            # 如果读库失败，返回空列表，避免UI卡死
-            return []
+        except Exception as e:
+            # Issue 3 Fix: 数据库查询失败时，返回内存缓存中的日志
+            print(f"DB query failed, using cache: {e}")
+            return self.get_cached_logs(level=level, limit=limit)
+    
+    def get_cached_logs(self, level: str = None, limit: int = 100) -> List[dict]:
+        """从内存缓存获取日志"""
+        with self._cache_lock:
+            logs = list(self._log_cache)
+        
+        # 按时间倒序
+        logs = sorted(logs, key=lambda x: x.get("timestamp", datetime.min), reverse=True)
+        
+        # 过滤级别
+        if level:
+            logs = [log for log in logs if log.get("level") == level]
+        
+        return logs[:limit]
     
     def get_backup_history(self, task_id: str = None, 
                            limit: int = 100) -> List[dict]:

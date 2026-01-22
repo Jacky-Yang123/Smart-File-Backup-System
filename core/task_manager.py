@@ -4,7 +4,7 @@
 import os
 import uuid
 import threading
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Tuple, Any
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 
@@ -137,12 +137,18 @@ class TaskRunner:
              self._trigger_safety_alert_update() # 更新提醒
              return
             
-        # 检查是否超过安全阈值
-        unique_paths = set()
+        # Issue 7 Fix: 检查是否超过安全阈值时，对于文件夹事件要计算内部文件数量
+        total_changes = 0
         for evt, _, _ in batch:
-            unique_paths.add(evt.src_path)
-        
-        total_changes = len(unique_paths)
+            if evt.is_directory and os.path.isdir(evt.src_path):
+                # 文件夹：计算内部文件数量
+                try:
+                    file_count = sum(1 for _, _, files in os.walk(evt.src_path) for _ in files)
+                    total_changes += max(file_count, 1)  # 至少算1个
+                except Exception:
+                    total_changes += 1
+            else:
+                total_changes += 1
         
         # 如果超过阈值，触发警告
         if total_changes >= self.task.safety_threshold:
@@ -150,46 +156,177 @@ class TaskRunner:
              self._paused_batch.extend(batch)
              self._trigger_safety_alert_update()
         else:
-             # 正常执行
-             threading.Thread(target=self._execute_batch, args=(batch,)).start()
+             # 正常执行 - 使用 execute_batch 通过队列执行
+             self.execute_batch(batch)
+
+    def _get_effective_excludes(self) -> List[str]:
+        """获取有效的排除列表 (自动添加嵌套的目标目录)"""
+        effective_excludes = list(self.task.exclude_patterns)
+        for target_path in self.task.target_paths:
+            try:
+                rel = os.path.relpath(target_path, self.task.source_path)
+                if not rel.startswith('..') and not os.path.isabs(rel):
+                    # 目标在源目录内，必须排除
+                    effective_excludes.append(target_path)
+                    # 同时也尝试排除目录名，以防万一
+                    target_name = os.path.basename(target_path)
+                    if target_name not in effective_excludes:
+                         effective_excludes.append(target_name)
+            except ValueError:
+                pass
+        return effective_excludes
 
     def confirm_safety_alert(self):
-        """确认并执行安全暂停期间累积的变更"""
+        """确认并执行安全暂停期间累积的所有变更"""
         if not self._is_safety_paused:
+            logger.warning("confirm_safety_alert 调用时未处于安全暂停状态", task_id=self.task.id, category="safety")
             return
-            
+        
         batch_to_run = list(self._paused_batch)
+        count = len(batch_to_run)
+        logger.info(f"确认安全警告: 准备执行 {count} 项操作", task_id=self.task.id, category="safety")
+        
         self._paused_batch.clear()
         self._is_safety_paused = False
         
-        self.execute_batch(batch_to_run)
+        if batch_to_run:
+            self.execute_batch(batch_to_run)
+        else:
+            logger.warning("确认安全警告: 批次为空，无操作执行", task_id=self.task.id, category="safety")
         
     def execute_batch(self, batch):
-        """执行批量任务 (公开接口)"""
-        # ... (保持不变)
-        import threading
-        # 异步执行，不阻塞 UI
-        threading.Thread(target=self._execute_batch, args=(batch,), daemon=True).start()
+        """执行批量任务 (通过操作队列)"""
+        if not batch:
+            logger.warning("执行批量任务: 批次为空", task_id=self.task.id, category="task")
+            return
+            
+        from .operation_queue import operation_queue, OperationType
+        from utils.constants import FileEventType, FileEvent
+        from utils.file_utils import get_relative_path
+        
+        ops = []
+        task_id = self.task.id
+        task_name = self.task.name
+        
+        logger.info(f"开始执行批量任务(Queue): {len(batch)} 项", task_id=task_id, category="task")
+
+        for item in batch:
+            # 格式: (event, is_reverse, target_base)
+            if isinstance(item, (list, tuple)) and len(item) >= 3:
+                event, is_reverse, target_base = item[:3]
+                if not isinstance(event, FileEvent):
+                    continue
+                    
+                op_type = OperationType.COPY_FILE
+                source = ""
+                target = ""
+                
+                try:
+                    # 确定操作类型
+                    if event.event_type == FileEventType.DELETED:
+                        op_type = OperationType.DELETE_FILE
+                    
+                    src_path = event.src_path
+                    
+                    if is_reverse:
+                        # 反向模式
+                        if op_type == OperationType.DELETE_FILE:
+                            # 目标删了 -> 删源
+                            rel = get_relative_path(src_path, target_base)
+                            source = os.path.join(self.task.source_path, rel)
+                        else:
+                             # 目标新增/修改 -> 复制到源
+                            rel = get_relative_path(src_path, target_base)
+                            source = src_path
+                            target = os.path.join(self.task.source_path, rel)
+                    else:
+                        # 正向模式
+                        if op_type == OperationType.DELETE_FILE:
+                            # 源删了 -> 删目标
+                            rel = get_relative_path(src_path, self.task.source_path)
+                            for t_path in self.task.target_paths:
+                                target_file_to_del = os.path.join(t_path, rel)
+                                ops.append({
+                                    "op_type": op_type,
+                                    "source": target_file_to_del,
+                                    "target": "",
+                                    "task_id": task_id,
+                                    "task_name": task_name
+                                })
+                            continue # 已添加所有目标，跳过通用逻辑
+                        else:
+                            # 源新增/修改 -> 复制到目标
+                            rel = get_relative_path(src_path, self.task.source_path)
+                            for t_path in self.task.target_paths:
+                                dst = os.path.join(t_path, rel)
+                                ops.append({
+                                    "op_type": op_type,
+                                    "source": src_path,
+                                    "target": dst,
+                                    "task_id": task_id,
+                                    "task_name": task_name
+                                })
+                            continue
+
+                    # 处理单目标情况 (反向或者其他逻辑)
+                    if source or (op_type == OperationType.COPY_FILE and source and target):
+                         ops.append({
+                            "op_type": op_type,
+                            "source": source,
+                            "target": target,
+                            "task_id": task_id,
+                            "task_name": task_name
+                        })
+                        
+                except Exception as e:
+                    logger.error(f"解析批量项失败: {e}", task_id=task_id)
+
+        if ops:
+            operation_queue.add_batch_operations(ops)
+
 
     def _execute_batch(self, batch):
-        """执行批量任务 (内部实现)"""
-        # 获取操作锁，防止与全量同步冲突
+        """执行批量任务 (内部实现) - 带进度追踪"""
         if not self._processor:
+            return
+        
+        total = len(batch)
+        if total == 0:
             return
             
         try:
-             # 我们在这里不获取全局锁，因为 _process_file_event_async 内部会获取
-             # 但为了防止批处理过程中任务被停止或删除，可以加个简单的状态检查
-             if self.status != TaskStatus.RUNNING:
-                 return
-
-             for event, is_reverse, target_base in batch:
+            processed = 0
+            
+            for event, is_reverse, target_base in batch:
                 if self.status != TaskStatus.RUNNING:
+                    logger.info(f"批量任务中断: 已处理 {processed}/{total}", task_id=self.task.id, category="task")
                     break
+                
                 # 调用处理逻辑
                 self._process_file_event_async(event, is_reverse, target_base)
+                processed += 1
+                
+                # 每处理10个或每5%发送一次进度更新
+                if processed % max(1, total // 20) == 0 or processed == total:
+                    remaining = total - processed
+                    if self._event_callback:
+                        self._event_callback(self.task.id, event, {
+                            "success": True,
+                            "action": "progress",
+                            "message": f"进度: {processed}/{total}, 剩余: {remaining}",
+                            "progress_current": processed,
+                            "progress_total": total,
+                            "progress_remaining": remaining
+                        })
+            
+            logger.info(f"批量任务完成: {processed}/{total}", task_id=self.task.id, category="task")
+            
         except Exception as e:
             logger.error(f"批量执行失败: {e}", task_id=self.task.id, category="task")
+    
+    def get_pending_batch_count(self) -> int:
+        """获取待处理批次数量"""
+        return len(self._paused_batch)
 
     def _trigger_safety_alert_update(self):
         """触发或更新安全警告"""
@@ -210,11 +347,15 @@ class TaskRunner:
             
         if self._event_callback:
             dummy_event = batch[0][0] 
+            # Issue 1 Fix: 限制传递给UI的预览数据为前100项，防止大量数据导致UI卡死
+            # 完整数据保留在 self._paused_batch 中用于执行
+            preview_batch = batch[:100] if len(batch) > 100 else batch
             self._event_callback(self.task.id, dummy_event, {
                 "success": False,
                 "action": "safety_alert",
                 "message": msg,
-                "batch_data": batch, # 传递完整数据，供 UI 选择
+                "batch_data": preview_batch,  # 只传递预览数据
+                "batch_total_count": count,   # 传递总数供UI显示
                 "alert_type": "massive_change",
                 "accumulated_count": count
             })
@@ -331,6 +472,9 @@ class TaskRunner:
                 return True
             
             try:
+                # 获取有效的排除列表（包含自动排除的嵌套目标）
+                effective_excludes = self._get_effective_excludes()
+
                 # 创建同步处理器
                 self._processor = SyncProcessor(
                     source_path=self.task.source_path,
@@ -338,10 +482,10 @@ class TaskRunner:
                     sync_mode=SyncMode(self.task.sync_mode),
                     conflict_strategy=ConflictStrategy(self.task.conflict_strategy),
                     include_patterns=self.task.include_patterns,
-                    exclude_patterns=self.task.exclude_patterns,
+                    exclude_patterns=effective_excludes,
                     disable_delete=self.task.disable_delete
                 )
-                
+
                 # 创建源文件夹监控器（根据模式选择实时或轮询）
                 if self.task.monitor_mode == "polling":
                     self._monitor = PollingMonitor(
@@ -350,7 +494,7 @@ class TaskRunner:
                         interval=self.task.poll_interval,
                         recursive=True,
                         include_patterns=self.task.include_patterns,
-                        exclude_patterns=self.task.exclude_patterns
+                        exclude_patterns=effective_excludes
                     )
                 else:
                     self._monitor = FileMonitor(
@@ -358,7 +502,7 @@ class TaskRunner:
                         callback=self._on_file_event,
                         recursive=True,
                         include_patterns=self.task.include_patterns,
-                        exclude_patterns=self.task.exclude_patterns
+                        exclude_patterns=effective_excludes
                     )
                 
                 if not self._monitor.start():
@@ -388,23 +532,43 @@ class TaskRunner:
                     # 稍微延迟一下，让UI先响应启动状态
                     import time
                     time.sleep(0.5)
-                    # 初始同步：如果有配置 initial_sync_delete，则使用它；否则使用默认的 delete_orphans (通常是 False)
-                    # 注意：如果 initial_sync_delete 为 True，将执行删除；否则按 delete_orphans (通常为 False)
-                    # 但为了安全起见，初始同步如果没明确开启 initial_sync_delete，不应该执行删除，哪怕 delete_orphans 为 True
-                    # 不过根据需求，'delete_orphans' 也是一个全量同步时的开关。
-                    # 逻辑调整：
-                    # 1. 如果 initial_sync_delete=True (启动时删除)，则强制 delete_orphans=True (仅针对这一次)
-                    # 2. 如果 initial_sync_delete=False (启动时不删除)，则强制 delete_orphans=False (仅针对这一次，避免误删)
-                    #    或者遵循 delete_orphans 设置？
-                    #    用户需求是 "启动时: 删除目标多余文件"，意味着这是专门针对启动时的策略。
-                    #    如果未勾选，即使 "全量同步时删除" 勾选了，启动时也最好不要删？或者保持一致？
-                    #    通常 "全量同步时删除" 用于手动触发。启动时的自动扫描为了安全，默认应该是不删的，除非专门勾选了针对启动的选项。
                     
-                    delete_rule = self.task.initial_sync_delete
+                    # Issue 4 Fix: 初始同步前先进行安全检查
+                    try:
+                        safety = self.check_sync_safety()
+                        if not safety.get("safe", True):
+                            # 触发安全警告，而不是直接执行
+                            logger.warning(f"启动时全量同步需要确认: {safety.get('message', '')}", 
+                                          task_id=self.task.id, category="safety")
+                            
+                            if self._event_callback:
+                                from .file_monitor import FileEvent
+                                from utils.constants import FileEventType
+                                dummy_event = FileEvent(
+                                    event_type=FileEventType.CREATED,
+                                    src_path=self.task.source_path,
+                                    is_directory=True
+                                )
+                                self._event_callback(self.task.id, dummy_event, {
+                                    "success": False,
+                                    "action": "safety_alert",
+                                    "message": f"启动时全量同步:\n{safety.get('message', '')}",
+                                    "batch_data": [],
+                                    "batch_total_count": safety.get("changes_count", 0),
+                                    "alert_type": safety.get("warning_type", "massive_change"),
+                                    "accumulated_count": safety.get("changes_count", 0),
+                                    "is_initial_sync": True  # 标记为初始同步，需要执行 run_full_sync
+                                })
+                            return  # 不执行同步，等待用户确认
+                    except Exception as e:
+                        logger.warning(f"安全检查失败，继续执行同步: {e}", task_id=self.task.id, category="safety")
+                    
+                    # 初始同步删除规则
+                    delete_rule = getattr(self.task, 'initial_sync_delete', False)
                     self.run_full_sync(delete_orphans_override=delete_rule)
                     
                 threading.Thread(target=auto_sync, daemon=True).start()
-                logger.info(f"触发启动时全量同步(删除策略={self.task.initial_sync_delete}): {self.task.name}", 
+                logger.info(f"触发启动时全量同步(删除策略={getattr(self.task, 'initial_sync_delete', False)}): {self.task.name}", 
                            task_id=self.task.id, category="task")
                 
                 return True
@@ -454,49 +618,73 @@ class TaskRunner:
                 logger.info(f"任务已恢复: {self.task.name}", task_id=self.task.id, category="task")
     
     def run_full_sync(self, skip_safety_check: bool = False, delete_orphans_override: Optional[bool] = None) -> bool:
-        """执行全量同步"""
-        # 获取操作锁，防止与实时同步冲突
-        with self._operation_lock:
-            try:
-                if self._processor is None:
-                    self._processor = SyncProcessor(
-                        source_path=self.task.source_path,
-                        target_paths=self.task.target_paths,
-                        sync_mode=SyncMode(self.task.sync_mode),
-                        conflict_strategy=ConflictStrategy(self.task.conflict_strategy),
-                        include_patterns=self.task.include_patterns,
-                        exclude_patterns=self.task.exclude_patterns,
-                        disable_delete=self.task.disable_delete
-                    )
-                
-                delete_orphans = delete_orphans_override if delete_orphans_override is not None else self.task.delete_orphans
-                
-                logger.info(f"开始全量同步(清理={delete_orphans}): {self.task.name}", task_id=self.task.id, category="task")
-                self._is_syncing = True
-                results = self._processor.full_sync(delete_orphans=delete_orphans)
-                self.task.last_run_time = datetime.now().isoformat()
-                task_manager.save_tasks()  # 保存最后运行时间
-
-                
-                # 记录结果
-                for result in results:
-                    if result.action in ("copy", "delete"):
-                        logger.log_backup(
-                            task_id=self.task.id,
-                            task_name=self.task.name,
-                            action=result.action,
-                            source_path=result.source_path,
-                            target_path=result.target_path,
-                            file_size=str(result.file_size) if result.file_size else None,
-                            status="success" if result.success else "failed"
+        """执行全量同步 (通过操作队列)"""
+        if self._is_syncing:
+            return False
+            
+        # 启动后台线程进行扫描和计划
+        import threading
+        from .operation_queue import operation_queue, OperationType
+        
+        def plan_and_queue():
+             try:
+                with self._operation_lock:
+                    if self._processor is None:
+                        self._processor = SyncProcessor(
+                            source_path=self.task.source_path,
+                            target_paths=self.task.target_paths,
+                            sync_mode=SyncMode(self.task.sync_mode),
+                            conflict_strategy=ConflictStrategy(self.task.conflict_strategy),
+                            include_patterns=self.task.include_patterns,
+                            exclude_patterns=self.task.exclude_patterns,
+                            disable_delete=self.task.disable_delete
                         )
-                
-                return True
-            except Exception as e:
-                logger.error(f"全量同步失败: {e}", task_id=self.task.id, category="task")
-                return False
-            finally:
+                    
+                    delete_orphans = delete_orphans_override if delete_orphans_override is not None else self.task.delete_orphans
+                    logger.info(f"开始全量同步扫描(清理={delete_orphans}): {self.task.name}", task_id=self.task.id, category="task")
+                    
+                    self._is_syncing = True
+                    # 1. 扫描并生成计划 (可能耗时，但不会卡死UI)
+                    plans = self._processor.scan_and_plan(delete_orphans=delete_orphans)
+                    
+                    if not plans:
+                         logger.info(f"全量同步扫描完成: 无需变更", task_id=self.task.id, category="task")
+                         self.task.last_run_time = datetime.now().isoformat()
+                         task_manager.save_tasks()
+                         self._is_syncing = False
+                         return
+
+                    # 2. 添加到队列
+                    ops = []
+                    for p in plans:
+                        ops.append({
+                            "op_type": p["op_type"],
+                            "source": p["source"],
+                            "target": p["target"],
+                            "task_id": self.task.id,
+                            "task_name": self.task.name
+                        })
+                    
+                operation_queue.add_batch_operations(ops)
+                    
+                logger.info(f"已将 {len(ops)} 个全量同步操作加入队列", task_id=self.task.id, category="task")
+                self.task.last_run_time = datetime.now().isoformat()
+                task_manager.save_tasks()
+                    
+             except Exception as e:
+                logger.error(f"全量同步计划失败: {e}", task_id=self.task.id, category="task")
+                import traceback
+                logger.error(f"Error Traceback: {traceback.format_exc()}", task_id=self.task.id, category="task")
+             finally:
                 self._is_syncing = False
+
+        try:
+            threading.Thread(target=plan_and_queue, daemon=True).start()
+            return True
+        except Exception as e:
+            logger.error(f"启动全量同步线程失败: {e}", task_id=self.task.id, category="task")
+            self._is_syncing = False
+            return False
     
     
     def check_sync_safety(self) -> dict:
@@ -521,7 +709,7 @@ class TaskRunner:
                     sync_mode=SyncMode(self.task.sync_mode),
                     conflict_strategy=ConflictStrategy(self.task.conflict_strategy),
                     include_patterns=self.task.include_patterns,
-                    exclude_patterns=self.task.exclude_patterns,
+                    exclude_patterns=self._get_effective_excludes(),
                     disable_delete=self.task.disable_delete
                 )
             
@@ -619,6 +807,38 @@ class TaskManager:
         
         # 加载保存的任务
         self._load_tasks()
+        
+        # 设置操作队列执行器
+        from .operation_queue import operation_queue
+        operation_queue.set_executor(self._execute_queue_operation)
+
+    def _execute_queue_operation(self, op) -> Tuple[bool, str]:
+        """执行队列操作 (作为 OperationQueue 的执行器)"""
+        task_id = op.task_id
+        if not task_id or task_id not in self._runners:
+            return False, f"Task not found: {task_id}"
+            
+        runner = self._runners[task_id]
+        if not runner._processor:
+            # 尝试初始化处理器 (可能需要从 task 创建)
+            task = self._tasks.get(task_id)
+            if not task:
+                return False, "Task object missing"
+                
+            from .sync_processor import SyncProcessor
+            runner._processor = SyncProcessor(
+                source_path=task.source_path,
+                target_paths=task.target_paths,
+                sync_mode=SyncMode(task.sync_mode),
+                conflict_strategy=ConflictStrategy(task.conflict_strategy),
+                include_patterns=task.include_patterns,
+                exclude_patterns=task.exclude_patterns,
+                disable_delete=task.disable_delete
+            )
+        
+        # 将 Enum 转换为字符串
+        op_type_str = op.op_type.value if hasattr(op.op_type, 'value') else str(op.op_type)
+        return runner._processor.execute_op(op_type_str, op.source_path, op.target_path)
     
     def _load_tasks(self):
         """从配置加载任务"""
@@ -778,10 +998,10 @@ class TaskManager:
         if task_id in self._runners:
             self._runners[task_id].resume()
     
-    def run_full_sync(self, task_id: str) -> bool:
+    def run_full_sync(self, task_id: str, delete_orphans_override: bool = None) -> bool:
         """执行全量同步"""
         if task_id in self._runners:
-            return self._runners[task_id].run_full_sync()
+            return self._runners[task_id].run_full_sync(delete_orphans_override=delete_orphans_override)
         return False
     
     def start_all(self, force: bool = False):

@@ -1,0 +1,23 @@
+=== 程序崩溃日志 ===
+时间: 2026-01-22T11:08:07.492901
+异常类型: AttributeError
+异常信息: 'SyncProcessor' object has no attribute '_is_running'
+
+=== 完整堆栈 ===
+Traceback (most recent call last):
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\ui\main_window.py", line 753, in _update_status
+    stats = task_manager.get_overall_stats()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\core\task_manager.py", line 1045, in get_overall_stats
+    "is_syncing": any(r.is_syncing for r in self._runners.values()),
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\core\task_manager.py", line 1045, in <genexpr>
+    "is_syncing": any(r.is_syncing for r in self._runners.values()),
+                      ^^^^^^^^^^^^
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\core\task_manager.py", line 753, in is_syncing
+    return self._is_syncing or (self._processor and self._processor.is_running)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\core\sync_processor.py", line 936, in is_running
+    return self._is_running
+           ^^^^^^^^^^^^^^^^
+AttributeError: 'SyncProcessor' object has no attribute '_is_running'. Did you mean: 'is_running'?

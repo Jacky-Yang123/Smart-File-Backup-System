@@ -1,0 +1,24 @@
+=== 程序崩溃日志 ===
+时间: 2026-01-22T11:06:35.293320
+异常类型: NameError
+异常信息: name 'Tuple' is not defined
+
+=== 完整堆栈 ===
+Traceback (most recent call last):
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\main.py", line 98, in <module>
+    main()
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\main.py", line 84, in main
+    from ui.main_window import MainWindow
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\ui\main_window.py", line 20, in <module>
+    from core.task_manager import task_manager, BackupTask
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\core\task_manager.py", line 1051, in <module>
+    task_manager = TaskManager()
+                   ^^^^^^^^^^^^^
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\core\task_manager.py", line 785, in __init__
+    from .operation_queue import operation_queue
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\core\operation_queue.py", line 53, in <module>
+    class OperationQueue:
+  File "c:\Users\Admin\Desktop\本地化\需备份\Deepseek一键翻译加强UI版\加强备份系统_github版本\core\operation_queue.py", line 228, in OperationQueue
+    def set_executor(self, executor: Callable[[FileOperation], Tuple[bool, str]]):
+                                                               ^^^^^
+NameError: name 'Tuple' is not defined. Did you mean: 'tuple'?

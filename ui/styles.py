@@ -266,8 +266,10 @@ QTabBar::tab:selected {{
 /* 复选框样式 */
 QCheckBox {{
     color: {COLORS["text_primary"]};
-    spacing: 6px;
+    spacing: 8px;
     font-size: 12px;
+    min-height: 22px;
+    padding: 2px 0;
 }}
 
 QCheckBox::indicator {{
@@ -348,6 +350,7 @@ QDialog {{
 QLabel {{
     color: {COLORS["text_primary"]};
     font-size: 12px;
+    min-height: 18px;
 }}
 
 /* SpinBox样式 */
