@@ -69,6 +69,12 @@ class LogViewer(QWidget):
         )
         filter_layout.addWidget(self.auto_scroll_check)
         
+        # 显示 DEBUG 日志
+        self.show_debug_check = QCheckBox("显示 DEBUG")
+        self.show_debug_check.setChecked(False)  # 默认不显示
+        self.show_debug_check.stateChanged.connect(self._load_logs)
+        filter_layout.addWidget(self.show_debug_check)
+        
         export_btn = QPushButton("📥 导出")
         export_btn.setProperty("class", "secondary")
         export_btn.setFixedHeight(26)
@@ -120,7 +126,13 @@ class LogViewer(QWidget):
         self.log_table.setSortingEnabled(False) # 暂停排序以提高性能
         
         for log in reversed(logs):
+            # 搜索过滤
             if search_text and search_text not in log.get("message", "").lower():
+                continue
+            
+            # DEBUG 过滤：除非勾选了"显示 DEBUG"，否则隐藏 DEBUG 日志
+            log_level = log.get("level", "INFO")
+            if log_level == "DEBUG" and not self.show_debug_check.isChecked():
                 continue
             
             row = self.log_table.rowCount()

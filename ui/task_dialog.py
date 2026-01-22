@@ -179,28 +179,6 @@ class TaskDialog(QDialog):
         self.delete_orphans_check.setToolTip("执行全量同步时，删除目标目录中存在但源目录中不存在的文件")
         layout.addWidget(self.delete_orphans_check)
         
-        # 初始同步选项 (新增)
-        self.initial_scan_delete_check = QCheckBox("启动时: 删除目标多余文件 (仅单向)")
-        self.initial_scan_delete_check.setToolTip("程序启动首次扫描时，如果目标文件夹有源文件夹没有的文件，是否删除。默认保留。")
-        self.initial_scan_delete_check.setStyleSheet(f"color: {COLORS['warning']};")
-        layout.addWidget(self.initial_scan_delete_check)
-
-        self.reverse_delete_check = QCheckBox("实时: 目标删除时同步删除源 (仅单向)")
-        self.reverse_delete_check.setToolTip("当目标目录中的文件被删除时，源目录中对应的文件也会被删除")
-        self.reverse_delete_check.setStyleSheet(f"color: {COLORS['warning']};")
-        layout.addWidget(self.reverse_delete_check)
-        
-        # 警告说明
-        warning_label = QLabel("⚠️ 启用反向删除可能导致源文件丢失，请谨慎使用！")
-        warning_label.setStyleSheet(f"color: {COLORS['warning']}; font-size: 10px; margin-top: 4px;")
-        warning_label.setVisible(False)
-        self.warning_label = warning_label
-        layout.addWidget(warning_label)
-        
-        self.reverse_delete_check.stateChanged.connect(
-            lambda s: warning_label.setVisible(s == Qt.Checked)
-        )
-        
         # 禁止删除选项
         self.disable_delete_check = QCheckBox("禁止删除操作 (安全模式)")
         self.disable_delete_check.setToolTip("启用后，程序不会删除任何文件，即使源文件已被删除，目标文件也会保留")
@@ -370,9 +348,6 @@ class TaskDialog(QDialog):
             self.conflict_combo.setCurrentIndex(idx)
         
         self.delete_orphans_check.setChecked(task.delete_orphans)
-        self.initial_scan_delete_check.setChecked(getattr(task, 'initial_sync_delete', False))
-        self.reverse_delete_check.setChecked(getattr(task, 'reverse_delete', False))
-        self.disable_delete_check.setChecked(getattr(task, 'disable_delete', False))
         self.disable_delete_check.setChecked(getattr(task, 'disable_delete', False))
         self.threshold_spinbox.setValue(getattr(task, 'file_count_diff_threshold', 20))
         self.safety_spinbox.setValue(getattr(task, 'safety_threshold', 50))
@@ -457,8 +432,6 @@ class TaskDialog(QDialog):
             enabled=self.enabled_check.isChecked(),
             auto_start=self.auto_start_check.isChecked(),
             delete_orphans=self.delete_orphans_check.isChecked(),
-            initial_sync_delete=self.initial_scan_delete_check.isChecked(),
-            reverse_delete=self.reverse_delete_check.isChecked(),
             disable_delete=self.disable_delete_check.isChecked(),
             file_count_diff_threshold=self.threshold_spinbox.value(),
             monitor_mode=self.monitor_mode_combo.currentData(),

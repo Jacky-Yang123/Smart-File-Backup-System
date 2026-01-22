@@ -320,11 +320,11 @@ class AlertPanel(QWidget):
                 widget.deleteLater()
                 break
         
-        # 如果批准，执行回调
-        if is_approved and alert_id in self._alerts:
+        # 执行回调 (批准则传选中的数据，不批准则传 None)
+        if alert_id in self._alerts:
             try:
-                # 回调现在接收 selected_data
-                self._alerts[alert_id](selected_data)
+                data_to_pass = selected_data if is_approved else None
+                self._alerts[alert_id](data_to_pass)
             except Exception as e:
                 print(f"Error executing alert callback: {e}")
         

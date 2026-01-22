@@ -593,7 +593,7 @@ class MainWindow(QMainWindow):
             self._active_task_alerts[task_id] = alert_id
             
             # 切换到提醒页
-            self._switch_page(4)
+            self._switch_page(3)  # 更新后的提醒页索引为 3
             
             # 显示通知
             self.tray.show_notification("安全警告", f"任务 {task.name} 需要确认", "warning")
@@ -661,43 +661,61 @@ class MainWindow(QMainWindow):
                 }
                 
                 # 使用工厂函数创建回调，正确捕获当前值
-                def make_callback(tid, tname, tsk, is_init):
+                def make_callback(tid, tname, tsk, is_init, total_count_expected):
                     def confirm_batch_callback(filtered_data=None):
-                        logger.info(f"执行回调: task_id={tid}, is_initial_sync={is_init}", category="sync")
+                        logger.info(f"执行回调: task_id={tid}, is_initial_sync={is_init}, filtered_count={len(filtered_data) if filtered_data is not None else 'None'}", category="sync")
+                        
+                        # 只有在用户主动确认（filtered_data 不为 None）时才清除状态
+                        # 如果 filtered_data 为 None，通常表示取消或关闭，也需要清除状态防止卡住
+                        
                         if is_init:
-                            # 初始同步：执行全量同步而不是批量操作
-                            delete_rule = getattr(tsk, 'initial_sync_delete', False)
-                            logger.info(f"执行初始全量同步 (删除策略={delete_rule})", task_id=tid, category="sync")
+                            # 初始同步：用户已经通过点击"执行"确认了该警告
+                            # 因此我们应该执行包括删除在内的所有操作
+                            # 忽略任务设置中的 initial_sync_delete，直接使用 True
+                            # 因为用户已经看到了删除警告并选择了确认
+                            logger.info(f"执行初始全量同步 (用户已确认，删除策略=True)", task_id=tid, category="sync")
                             
                             # 在新线程执行以避免阻塞UI
                             import threading
                             def do_sync():
-                                task_manager.run_full_sync(tid, delete_orphans_override=delete_rule)
+                                task_manager.run_full_sync(tid, delete_orphans_override=True)
                             threading.Thread(target=do_sync, daemon=True).start()
                             
                             msg = f"{tname}: 初始全量同步已确认执行"
-                        elif filtered_data is not None and len(filtered_data) > 0:
-                            # 执行选中的操作
-                            task_manager.execute_batch(tid, filtered_data)
-                            task_manager.reset_safety_pause(tid)
-                            count = len(filtered_data)
-                            msg = f"{tname}: 执行了 {count} 个选中的操作"
-                        elif filtered_data is not None and len(filtered_data) == 0:
-                            # 用户没有选择任何项目
-                            task_manager.reset_safety_pause(tid)
-                            msg = f"{tname}: 未选择任何操作"
+
+                        elif filtered_data is not None:
+                            # 检查是否是"全选"且发生了数据截断
+                            # 如果 UI 传递回来的数据量等于我们发送给 UI 的预览数据量(100)，
+                            # 且实际总量 total_count_expected 大于预览量，则认为用户是想执行“全部”
+                            if len(filtered_data) > 0:
+                                if len(filtered_data) == 100 and total_count_expected > 100:
+                                    logger.info(f"检测到 UI 数据截断(100/{total_count_expected})，执行全量 confirm 逻辑", task_id=tid, category="sync")
+                                    task_manager.confirm_safety_alert(tid)
+                                    msg = f"{tname}: 已确认执行全部 {total_count_expected} 项变更"
+                                else:
+                                    # 执行选中的操作
+                                    task_manager.execute_batch(tid, filtered_data)
+                                    task_manager.reset_safety_pause(tid)
+                                    count = len(filtered_data)
+                                    msg = f"{tname}: 执行了 {count} 个选中的操作"
+                            else:
+                                # 用户主动选择 0 个（全不选）并点执行
+                                task_manager.reset_safety_pause(tid)
+                                msg = f"{tname}: 未选择任何操作"
                         else:
-                            # 旧逻辑兼容
-                            task_manager.confirm_safety_alert(tid)
-                            msg = f"{tname}: 安全处理确认"
+                            # 取消操作 (filtered_data is None)
+                            task_manager.reset_safety_pause(tid)
+                            msg = f"{tname}: 操作已取消"
                             
-                        # 清除活跃提醒记录
+                        # 确保清除活跃提醒记录
                         if tid in self._active_task_alerts:
                             del self._active_task_alerts[tid]
                         self.tray.show_notification("执行批量更改", msg, "info")
+                        
                     return confirm_batch_callback
                 
-                callback = make_callback(task_id, task_name, task, is_initial_sync)
+                batch_total = result.get("batch_total_count", len(batch_data))
+                callback = make_callback(task_id, task_name, task, is_initial_sync, batch_total)
                 self._add_safety_alert(task, safety_info, callback)
                 return
             

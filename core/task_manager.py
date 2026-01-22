@@ -224,6 +224,10 @@ class TaskRunner:
                 try:
                     # 确定操作类型
                     if event.event_type == FileEventType.DELETED:
+                        # 如果禁止删除，跳过删除操作
+                        if self.task.disable_delete:
+                            logger.info(f"跳过删除操作 (disable_delete=True): {event.src_path}", task_id=task_id, category="task")
+                            continue
                         op_type = OperationType.DELETE_FILE
                     
                     src_path = event.src_path
