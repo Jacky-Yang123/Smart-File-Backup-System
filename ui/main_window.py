@@ -23,7 +23,6 @@ from core.file_monitor import FileEvent
 
 from .styles import GLOBAL_STYLE, SIDEBAR_STYLE, TASK_CARD_STYLE, STATUSBAR_STYLE, COLORS
 from .task_dialog import TaskDialog
-from .monitor_panel import MonitorPanel
 from .log_viewer import LogViewer
 from .settings_panel import SettingsPanel
 from .system_tray import SystemTray
@@ -129,6 +128,21 @@ class TaskCard(QFrame):
         edit_btn.setFixedSize(28, 28)
         edit_btn.clicked.connect(lambda: self.edit_clicked.emit(self.task.id))
         layout.addWidget(edit_btn)
+
+        # 打开文件夹按钮
+        self.open_src_btn = QPushButton("📁")
+        self.open_src_btn.setProperty("class", "icon")
+        self.open_src_btn.setToolTip("打开源文件夹")
+        self.open_src_btn.setFixedSize(28, 28)
+        self.open_src_btn.clicked.connect(self._open_source)
+        layout.addWidget(self.open_src_btn)
+
+        self.open_tgt_btn = QPushButton("📂")
+        self.open_tgt_btn.setProperty("class", "icon")
+        self.open_tgt_btn.setToolTip("打开目标文件夹 (第一个)")
+        self.open_tgt_btn.setFixedSize(28, 28)
+        self.open_tgt_btn.clicked.connect(self._open_target)
+        layout.addWidget(self.open_tgt_btn)
         
         delete_btn = QPushButton("×")
         delete_btn.setProperty("class", "icon")
@@ -163,6 +177,19 @@ class TaskCard(QFrame):
     
     def refresh_status(self):
         self._update_status()
+
+    def _open_source(self):
+        """打开源文件夹"""
+        if self.task.source_path and os.path.exists(self.task.source_path):
+            os.startfile(self.task.source_path)
+
+    def _open_target(self):
+        """打开目标文件夹"""
+        # 如果有多个目标，目前仅打开第一个
+        if self.task.target_paths:
+            path = self.task.target_paths[0]
+            if os.path.exists(path):
+                os.startfile(path)
 
 
 class MainWindow(QMainWindow):
@@ -223,11 +250,7 @@ class MainWindow(QMainWindow):
         self.task_page = self._create_task_page()
         self.content_stack.addWidget(self.task_page)
         
-        # 1: 监控面板
-        self.monitor_panel = MonitorPanel()
-        self.content_stack.addWidget(self.monitor_panel)
-        
-        # 2: 日志查看器
+        # 1: 日志查看器
         self.log_viewer = LogViewer()
         self.content_stack.addWidget(self.log_viewer)
         
@@ -270,12 +293,11 @@ class MainWindow(QMainWindow):
         self.nav_buttons = []
         nav_items = [
             ("📋 任务", 0), 
-            ("📊 监控", 1), 
-            ("📝 日志", 2), 
-            ("📁 变更", 3), 
-            ("⚠️ 提醒", 4), 
-            ("⚡ 队列", 5), 
-            ("⚙️ 设置", 6)
+            ("📝 日志", 1), 
+            ("📁 变更", 2), 
+            ("⚠️ 提醒", 3), 
+            ("⚡ 队列", 4), 
+            ("⚙️ 设置", 5)
         ]
         
         for text, index in nav_items:
@@ -426,7 +448,7 @@ class MainWindow(QMainWindow):
         for i, btn in enumerate(self.nav_buttons):
             btn.setChecked(i == index)
             
-        if index == 6:
+        if index == 5:
             self._show_settings()
         elif 0 <= index < self.content_stack.count():
             self.content_stack.setCurrentIndex(index)
@@ -679,14 +701,6 @@ class MainWindow(QMainWindow):
                 self._add_safety_alert(task, safety_info, callback)
                 return
             
-            # 处理进度更新事件
-            if result.get("action") == "progress":
-                current = result.get("progress_current", 0)
-                total = result.get("progress_total", 0)
-                remaining = result.get("progress_remaining", 0)
-                self.monitor_panel.update_progress(current, total, remaining)
-                return
-            
             task_name = task.name if task else "未知"
             
             # 检查是否是目录操作或批量文件夹操作
@@ -706,18 +720,7 @@ class MainWindow(QMainWindow):
             event_name = event_names.get(event.event_type.value, event.event_type.value)
             filename = os.path.basename(event.src_path)
             
-            # 添加到监控面板 - 包含任务名
-            self.monitor_panel.add_activity(
-                event.event_type.value,
-                event.src_path,
-                "success" if result.get("success") else "failed",
-                target_path=result.get("target_path"),
-                task_name=task_name,
-                is_directory=is_directory,
-                file_count=file_count
-            )
-            
-            # 添加到文件变更查看器
+            # 事件类型中文名
             self.file_change_viewer.add_change(
                 event_type=event.event_type.value,
                 source_path=event.src_path,
